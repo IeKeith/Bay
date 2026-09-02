@@ -8,7 +8,11 @@ export interface ChatMessage {
 export interface AvatarOption {
   id: string;
   name: string;
+  role?: string;
   thumbnail?: string;
+  voice_id?: string;
+  voice_name?: string;
+  lod_urls?: Record<string, string>;
 }
 
 export interface VoiceOption {

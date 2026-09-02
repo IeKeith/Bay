@@ -9,14 +9,14 @@ export const RouteCard: React.FC<RouteCardProps> = ({ plan }) => {
   return (
     <section className="card route-card">
       <div className="card-header-row">
-        <span className="badge badge-accent">⏱️ Timed Hawker Route</span>
+        <span className="badge badge-accent">Timed Hawker Route</span>
         <span className={`badge ${plan.countdownUrgent ? 'badge-timer' : 'badge-accent'}`}>
           {plan.countdown}
         </span>
       </div>
 
       <div className="route-target-box">
-        <span className="target-flag">📍 Target Destination</span>
+        <span className="target-flag">Target Destination</span>
         <h3>{plan.targetDestination}</h3>
         <p className="target-sub">{plan.targetNote}</p>
       </div>

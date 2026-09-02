@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Header } from './components/Header';
-import { RouteCard } from './components/RouteCard';
+import { FoodSpotlightCard, FoodSpotlight } from './components/FoodSpotlightCard';
 import { PersonaSelector } from './components/PersonaSelector';
 import { QuickPrompts } from './components/QuickPrompts';
 import { AvatarStage } from './components/AvatarStage';
@@ -15,6 +15,31 @@ import type { ChatMessage, AvatarOption, VoiceOption } from './types/chat';
 import type { PresenterConfig } from './types/presenter';
 import './App.css';
 
+const DISH_CATALOG: Record<string, FoodSpotlight> = {
+  satay: {
+    stallId: 1,
+    stallName: 'City Satay (Stall 1)',
+    dishName: 'Charcoal-Grilled Chicken & Beef Satay',
+    price: 'SGD $9.00',
+    prepTime: '~15 mins (Grill Queue: 20 mins)',
+    dietary: '100% Halal Certified',
+    description:
+      'Tender marinated skewers grilled over hot mangrove charcoal, served with warm spiced peanut sauce, cucumbers, and steamed ketupat.',
+    imageUrl: '/satay_dish.jpg',
+  },
+  prata: {
+    stallId: 4,
+    stallName: 'Garden Greens & Prata House (Stall 4)',
+    dishName: 'Crispy Plain & Egg Prata with Dhal Curry',
+    price: 'SGD $3.50',
+    prepTime: '~6 mins (Fast Pickup)',
+    dietary: 'Vegetarian & Nut-Free',
+    description:
+      'Hand-stretched golden layered flatbread, pan-fried to crisp perfection and served with house-made aromatic vegetable dhal curry.',
+    imageUrl: '/prata_dish.jpg',
+  },
+};
+
 export const App: React.FC = () => {
   const stageRef = useRef<HTMLDivElement>(null);
 
@@ -22,7 +47,8 @@ export const App: React.FC = () => {
   const [config, setConfig] = useState<PresenterConfig | null>(null);
   const [avatars, setAvatars] = useState<AvatarOption[]>([]);
   const [voices, setVoices] = useState<VoiceOption[]>([]);
-  const [selectedAvatar, setSelectedAvatar] = useState<string>('01KZFW8613MF0AWNRR59BBDMG6');
+  const [selectedAvatar, setSelectedAvatar] = useState<string>('01KVQ595FX6K4SJ182HRNFERTK');
+  const [foodSpotlight, setFoodSpotlight] = useState<FoodSpotlight>(DISH_CATALOG.satay);
   const [selectedVoice, setSelectedVoice] = useState<string>('01KY40Z9NTKTC5DMH8TD5S77RT');
   const [activeSceneId, setActiveSceneId] = useState<string>('01KQEJD0NJFVM20M588K7D1E9Z');
   const [statusText, setStatusText] = useState('Connecting...');
@@ -39,8 +65,16 @@ export const App: React.FC = () => {
   const [repairNoticeText, setRepairNoticeText] = useState<string | null>(null);
 
   // Persona name resolution
-  const isRaj = selectedAvatar.toLowerCase().includes('raj') || selectedAvatar.toLowerCase().includes('m');
-  const personaName = isRaj ? 'Raj' : 'Mei';
+  const selectedObj = avatars.find((a) => a.id === selectedAvatar);
+  let personaName = 'Mei';
+  if (selectedObj) {
+    if (selectedObj.name.includes('Raj') || selectedObj.name.includes('cc069a02')) personaName = 'Raj';
+    else if (selectedObj.name.includes('Host') || selectedObj.name.includes('cc069a03')) personaName = 'Host';
+    else if (selectedObj.name.includes('Meeks') || selectedObj.name.includes('cc051')) personaName = 'Meeks';
+    else if (selectedObj.name.includes('Emojiboy') || selectedObj.name.includes('cc075')) personaName = 'Emojiboy';
+    else if (selectedObj.name.includes('Concierge') || selectedObj.name.includes('cc046')) personaName = 'Concierge';
+    else personaName = 'Mei';
+  }
 
   // Route Plan Hook
   const { routePlan, updateFromText } = useRoutePlan();
@@ -73,28 +107,52 @@ export const App: React.FC = () => {
     lang: 'en-SG',
   });
 
+  const requestedTargetRef = useRef<{ avatarId: string; sceneId: string; voiceId: string } | null>(null);
   const isInitializingRef = useRef(false);
 
-  // Initialize Presenter once catalog is ready
-  const initAvatarPresenter = useCallback(async (targetAv?: string, targetSc?: string, targetVc?: string) => {
-    if (!stageRef.current || isInitializingRef.current) return;
+  const selectedAvatarRef = useRef(selectedAvatar);
+  selectedAvatarRef.current = selectedAvatar;
+  const activeSceneIdRef = useRef(activeSceneId);
+  activeSceneIdRef.current = activeSceneId;
+  const selectedVoiceRef = useRef(selectedVoice);
+  selectedVoiceRef.current = selectedVoice;
+
+  const presenterInitRef = useRef(presenter.initialize);
+  presenterInitRef.current = presenter.initialize;
+
+  const processTargetQueue = useCallback(async () => {
+    if (isInitializingRef.current || !stageRef.current) return;
     isInitializingRef.current = true;
     try {
-      setStatusText('Connecting to Perxona...');
-      const { connect_token } = await fetchJson<{ connect_token: string }>('/api/connect-token');
-      await presenter.initialize(connect_token, {
-        avatarId: targetAv || selectedAvatar,
-        sceneId: targetSc || activeSceneId,
-        voiceId: targetVc || selectedVoice,
-      });
-      setStatusText('Online');
+      while (requestedTargetRef.current) {
+        const currentTarget = requestedTargetRef.current;
+        requestedTargetRef.current = null;
+        setStatusText('Loading Avatar...');
+        const { connect_token } = await fetchJson<{ connect_token: string }>('/api/connect-token');
+        await presenterInitRef.current(connect_token, currentTarget);
+        setStatusText('Online');
+      }
     } catch (err) {
       console.warn('[App] Presenter init warning:', err);
       setStatusText('Online (Speech Ready)');
     } finally {
       isInitializingRef.current = false;
+      if (requestedTargetRef.current) {
+        void processTargetQueue();
+      }
     }
-  }, [presenter, selectedAvatar, activeSceneId, selectedVoice]);
+  }, []);
+
+  // Initialize Presenter with queue so rapid swaps never drop or stop halfway
+  const initAvatarPresenter = useCallback((targetAv?: string, targetSc?: string, targetVc?: string) => {
+    const target = {
+      avatarId: targetAv || selectedAvatarRef.current,
+      sceneId: targetSc || activeSceneIdRef.current,
+      voiceId: targetVc || selectedVoiceRef.current,
+    };
+    requestedTargetRef.current = target;
+    void processTargetQueue();
+  }, [processTargetQueue]);
 
   // Initial Data Fetch
   useEffect(() => {
@@ -119,13 +177,26 @@ export const App: React.FC = () => {
         setVoices(vcData.items || []);
 
         const initialScene = scData.items?.[0]?.id || '01KQEJD0NJFVM20M588K7D1E9Z';
-        const initialAvatar = avData.items?.[0]?.id || '01KZFW8613MF0AWNRR59BBDMG6';
-        const initialVoice = vcData.items?.[0]?.id || '01KY40Z9NTKTC5DMH8TD5S77RT';
+        const initialAvatarObj = avData.items?.[0];
+        const initialAvatar = initialAvatarObj?.id || '01KVQ595FX6K4SJ182HRNFERTK';
+        const initialVoice = initialAvatarObj?.voice_id || '01KY40Z9NTKTC5DMH8TD5S77RN';
 
         setActiveSceneId(initialScene);
         setSelectedAvatar(initialAvatar);
         setSelectedVoice(initialVoice);
         setStatusText('Ready');
+
+        // Preload all avatar thumbnails and dish images at startup
+        new Image().src = '/satay_dish.jpg';
+        new Image().src = '/prata_dish.jpg';
+        if (avData.items) {
+          avData.items.forEach((av) => {
+            if (av.thumbnail) {
+              const img = new Image();
+              img.src = av.thumbnail;
+            }
+          });
+        }
 
         // Initialize Presenter directly with verified targets
         void initAvatarPresenter(initialAvatar, initialScene, initialVoice);
@@ -137,7 +208,8 @@ export const App: React.FC = () => {
 
     loadCatalog();
     return () => { mounted = false; };
-  }, [initAvatarPresenter]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Phonetic Auto-Repair Preview Check
   const checkPhoneticPreview = (raw: string) => {
@@ -180,6 +252,27 @@ export const App: React.FC = () => {
     };
     setMessages((prev) => [...prev, userMsg]);
     updateFromText(text);
+
+    // Sync Food Spotlight with User Input
+    const lowerText = text.toLowerCase();
+    if (
+      lowerText.includes('prata') ||
+      lowerText.includes('vegetarian') ||
+      lowerText.includes('replan') ||
+      lowerText.includes('delay') ||
+      lowerText.includes('green') ||
+      lowerText.includes('nut')
+    ) {
+      setFoodSpotlight(DISH_CATALOG.prata);
+    } else if (
+      lowerText.includes('satay') ||
+      lowerText.includes('halal') ||
+      lowerText.includes('chicken') ||
+      lowerText.includes('rush') ||
+      lowerText.includes('beef')
+    ) {
+      setFoodSpotlight(DISH_CATALOG.satay);
+    }
 
     // Prepare Assistant Message
     const botMsgId = `bot-${Date.now()}`;
@@ -254,6 +347,14 @@ export const App: React.FC = () => {
         presenter.present(sentenceBuffer.trim());
       }
 
+      // Sync Food Spotlight with Assistant's Recommendation
+      const lowerReply = fullReply.toLowerCase();
+      if (lowerReply.includes('prata') || lowerReply.includes('stall 4')) {
+        setFoodSpotlight(DISH_CATALOG.prata);
+      } else if (lowerReply.includes('satay') || lowerReply.includes('stall 1')) {
+        setFoodSpotlight(DISH_CATALOG.satay);
+      }
+
       updateFromText(fullReply);
     } catch (err: any) {
       console.error('[App] Chat error:', err);
@@ -270,22 +371,28 @@ export const App: React.FC = () => {
       <Header statusText={statusText} />
 
       <main className="kiosk-grid">
-        {/* Left Column: Route Card, Setup, Quick Chips */}
+        {/* Left Column: Food Spotlight Card, Persona Switcher, Quick Chips */}
         <aside className="col-left">
-          <RouteCard plan={routePlan} />
+          <FoodSpotlightCard
+            spotlight={foodSpotlight}
+            onOrderClick={() =>
+              handleSendMessage(
+                `Tell me how to order ${foodSpotlight.dishName} from ${foodSpotlight.stallName}!`
+              )
+            }
+          />
 
           <PersonaSelector
             avatars={avatars}
-            voices={voices}
             selectedAvatar={selectedAvatar}
-            selectedVoice={selectedVoice}
             onAvatarChange={(id) => {
               setSelectedAvatar(id);
+              const targetAvatar = avatars.find((a) => a.id === id);
+              const matchedVoice = targetAvatar?.voice_id || selectedVoice;
+              setSelectedVoice(matchedVoice);
+              void initAvatarPresenter(id, activeSceneId, matchedVoice);
             }}
-            onVoiceChange={(id) => {
-              setSelectedVoice(id);
-            }}
-            onReconnect={initAvatarPresenter}
+            onReconnect={() => void initAvatarPresenter(selectedAvatar, activeSceneId, selectedVoice)}
           />
 
           <QuickPrompts onSelectPrompt={(prompt) => handleSendMessage(prompt)} />

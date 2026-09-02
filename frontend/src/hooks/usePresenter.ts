@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import type { PresenterElement, PresentationTarget } from '../types/presenter';
 import { loadPresenterEngine } from '../lib/presenter';
 import { fetchJson } from '../lib/api';
@@ -23,6 +23,14 @@ export function usePresenter({
   const finishedCbRef = useRef(onPerformanceFinished);
   finishedCbRef.current = onPerformanceFinished;
 
+  // Queue initialize if called while engine or element is still mounting
+  const pendingTargetRef = useRef<{
+    token: string;
+    target: PresentationTarget;
+    resolve?: () => void;
+    reject?: (err: any) => void;
+  } | null>(null);
+
   // Mount <sv-presenter> once engine is loaded
   useEffect(() => {
     let active = true;
@@ -32,52 +40,65 @@ export function usePresenter({
         await loadPresenterEngine(presenterUrl);
         if (!active || !stageRef.current) return;
 
-        // Clean up previous instance if any
-        if (presenterRef.current) {
-          presenterRef.current.remove();
+        // Check if an <sv-presenter> is already attached to this container
+        let el = stageRef.current.querySelector('sv-presenter') as PresenterElement;
+        if (!el) {
+          el = document.createElement('sv-presenter') as PresenterElement;
+          el.hidden = true;
+          el.style.width = '100%';
+          el.style.height = '100%';
+
+          el.addEventListener('PRESENTER_STATUS', (e: Event) => {
+            const detail = (e as CustomEvent<{ status: string }>).detail;
+            if (detail?.status === 'Ready') {
+              el.hidden = false;
+              setIsReady(true);
+            } else {
+              setIsReady(false);
+            }
+          });
+
+          el.addEventListener('PERFORMANCE_START', () => {
+            setIsSpeaking(true);
+          });
+
+          el.addEventListener('PLAYING_SPEECH_TEXT', (e: Event) => {
+            const text = (e as CustomEvent<{ text: string }>).detail?.text;
+            if (text) setSubtitle(text);
+          });
+
+          el.addEventListener('ALL_PERFORMANCE_FINISHED', () => {
+            setIsSpeaking(false);
+            setTimeout(() => setSubtitle(''), 1500);
+            finishedCbRef.current?.();
+          });
+
+          el.addEventListener('CONNECT_TOKEN_EXPIRED', async () => {
+            try {
+              const { connect_token } = await fetchJson<{ connect_token: string }>('/api/connect-token');
+              el.refreshConnectToken?.(connect_token);
+            } catch (err) {
+              console.error('[Presenter] Token refresh error:', err);
+            }
+          });
+
+          stageRef.current.appendChild(el);
         }
 
-        const el = document.createElement('sv-presenter') as PresenterElement;
-        el.hidden = true;
-        el.style.width = '100%';
-        el.style.height = '100%';
-
-        el.addEventListener('PRESENTER_STATUS', (e: Event) => {
-          const detail = (e as CustomEvent<{ status: string }>).detail;
-          if (detail?.status === 'Ready') {
-            el.hidden = false;
-            setIsReady(true);
-          } else {
-            setIsReady(false);
-          }
-        });
-
-        el.addEventListener('PERFORMANCE_START', () => {
-          setIsSpeaking(true);
-        });
-
-        el.addEventListener('PLAYING_SPEECH_TEXT', (e: Event) => {
-          const text = (e as CustomEvent<{ text: string }>).detail?.text;
-          if (text) setSubtitle(text);
-        });
-
-        el.addEventListener('ALL_PERFORMANCE_FINISHED', () => {
-          setIsSpeaking(false);
-          setTimeout(() => setSubtitle(''), 1500);
-          finishedCbRef.current?.();
-        });
-
-        el.addEventListener('CONNECT_TOKEN_EXPIRED', async () => {
-          try {
-            const { connect_token } = await fetchJson<{ connect_token: string }>('/api/connect-token');
-            el.refreshConnectToken?.(connect_token);
-          } catch (err) {
-            console.error('[Presenter] Token refresh error:', err);
-          }
-        });
-
-        stageRef.current.appendChild(el);
         presenterRef.current = el;
+
+        // If initialize() was called while script was loading, execute it now!
+        if (pendingTargetRef.current) {
+          const { token, target, resolve, reject } = pendingTargetRef.current;
+          pendingTargetRef.current = null;
+          try {
+            await el.initialize(token, target);
+            resolve?.();
+          } catch (err) {
+            console.warn('[Presenter] Queued initialize warning:', err);
+            reject?.(err);
+          }
+        }
       } catch (err) {
         console.error('[Presenter] Mount error:', err);
       }
@@ -87,8 +108,6 @@ export function usePresenter({
 
     return () => {
       active = false;
-      presenterRef.current?.remove();
-      presenterRef.current = null;
     };
   }, [stageRef, presenterUrl]);
 
@@ -103,11 +122,22 @@ export function usePresenter({
     }
   }, []);
 
-  // Initialize presenter with token & target
+  // Initialize presenter with token & target (queues safely if mounting)
   const initialize = useCallback(async (token: string, target: PresentationTarget) => {
-    if (!presenterRef.current) return;
     setIsReady(false);
-    await presenterRef.current.initialize(token, target);
+
+    if (!presenterRef.current) {
+      return new Promise<void>((resolve, reject) => {
+        pendingTargetRef.current = { token, target, resolve, reject };
+      });
+    }
+
+    try {
+      await presenterRef.current.initialize(token, target);
+    } catch (err) {
+      console.warn('[Presenter] initialize warning:', err);
+      throw err;
+    }
   }, []);
 
   // Present speech queue
@@ -121,14 +151,17 @@ export function usePresenter({
     }
   }, []);
 
-  return {
-    presenter: presenterRef.current,
-    isReady,
-    isSpeaking,
-    subtitle,
-    isAudioUnlocked,
-    resumeAudio,
-    initialize,
-    present,
-  };
+  return useMemo(
+    () => ({
+      presenter: presenterRef.current,
+      isReady,
+      isSpeaking,
+      subtitle,
+      isAudioUnlocked,
+      resumeAudio,
+      initialize,
+      present,
+    }),
+    [isReady, isSpeaking, subtitle, isAudioUnlocked, resumeAudio, initialize, present]
+  );
 }

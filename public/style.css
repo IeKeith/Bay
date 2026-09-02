@@ -463,14 +463,28 @@ body {
   background: #000;
 }
 
-.stage-backdrop {
-  position: absolute;
-  inset: 0;
-  background-image: url('satay_bg.jpg');
-  background-size: cover;
-  background-position: center center;
-  filter: brightness(0.9);
-  transition: filter 0.5s ease;
+/* Keep DOM hidden attribute authoritative */
+[hidden] {
+  display: none !important;
+}
+
+.stage-element-holder {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  z-index: 10;
+}
+
+sv-presenter {
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  z-index: 2;
+}
+
+sv-presenter[hidden] {
+  display: none !important;
 }
 
 /* Autoplay Audio Unlock Overlay */

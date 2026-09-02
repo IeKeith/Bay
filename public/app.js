@@ -258,7 +258,7 @@ function appendMessage(role, text) {
 
   const sender = document.createElement("div");
   sender.className = "bubble-sender";
-  sender.textContent = role === "user" ? "You" : `🌿 ${currentAvatarPersona} • Concierge`;
+  sender.textContent = role === "user" ? "You" : `${currentAvatarPersona} - Concierge`;
 
   const content = document.createElement("div");
   content.className = "bubble-text";

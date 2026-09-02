@@ -1,11 +1,11 @@
-# 🌿 Garden-to-Table Host
+# Garden-to-Table Host
 
 > **Voice-Enabled 3D AI Avatar Concierge for Satay by the Bay (Gardens by the Bay, Singapore)**  
 > Built with **React 19 + TypeScript + Vite**, **Python FastAPI Backend**, **OpenAI Streaming LLM**, and **Perxona Connect 3D Avatar API (`<sv-presenter>`)**.
 
 ---
 
-## 📌 1. Project Overview & Value Proposition
+## 1. Project Overview & Value Proposition
 
 Visitors at **Gardens by the Bay** frequently experience tight 40–60 minute turnaround times between conservatories (Flower Dome / Cloud Forest) and the evening **7:45 PM Garden Rhapsody Light Show** at Supertree Grove. Dining during peak hours at **Satay by the Bay** is notoriously challenging:
 - Individual hawker stalls have disparate grill and preparation queues (5 to 25+ minutes).
@@ -21,7 +21,7 @@ Visitors at **Gardens by the Bay** frequently experience tight 40–60 minute tu
 
 ---
 
-## 🏗️ 2. System Architecture
+## 2. System Architecture
 
 ```
                                     +-----------------------------------------+
@@ -50,7 +50,7 @@ Visitors at **Gardens by the Bay** frequently experience tight 40–60 minute tu
 |                                                                                                    |
 |  - GET /api/config          : System mode, presenter CDN URL, default target IDs                   |
 |  - GET /api/connect-token   : Proxies credentials to Perxona Auth API and caches Bearer JWT        |
-|  - GET /api/avatars, voices : Returns concierge personas (Mei & Raj) and 22 voices                 |
+|  - GET /api/avatars, voices : Returns concierge avatars (cc069a03, cc076a06, cc051, cc046, cc075) and 22 voices |
 |  - POST /api/chat           : Singlish / Hawker Phonetic Auto-Repair regex pass                    |
 |                               Injected satay_by_the_bay.md domain rules                            |
 |                               Streams OpenAI gpt-4o-mini SSE response                              |
@@ -66,7 +66,7 @@ Visitors at **Gardens by the Bay** frequently experience tight 40–60 minute tu
 
 ---
 
-## 🛠️ 3. Tech Stack
+## 3. Tech Stack
 
 | Layer | Technology | Description |
 | :--- | :--- | :--- |
@@ -75,26 +75,30 @@ Visitors at **Gardens by the Bay** frequently experience tight 40–60 minute tu
 | **Types Package** | **`@perxona/presenter-types`** | Official Perxona TypeScript definitions |
 | **Speech Interface** | **Web Speech API** | Hands-free continuous voice input (`en-SG`) |
 | **Styling** | **Glassmorphic CSS3** | Gardens by the Bay botanical greens + satay amber |
-| **Backend** | **Python 3.10+ (FastAPI, Uvicorn)** | High-performance asynchronous API |
+| **Backend** | **Python 3.9+ (tested with Python 3.9.16, FastAPI, Uvicorn)** | High-performance asynchronous API |
 | **HTTP Client** | **`httpx`** | Async client for Perxona token caching & catalog proxy |
 | **LLM Streaming** | **`openai` (AsyncOpenAI)** | Server-Sent Events (`text/event-stream`) streaming |
 
 ---
 
-## 📂 4. Project Structure
+## 4. Project Structure
 
 ```
 Bay/
-├── main.py                     # Python FastAPI server & proxy endpoints
+├── main.py                     # Root entrypoint forwarding to backend.main:app
+├── backend/
+│   └── main.py                 # Python FastAPI server, Perxona auth & proxy, chat SSE, static mount
 ├── satay_by_the_bay.md         # Domain Knowledge Base (7:45 PM Supertree show timing)
 ├── requirements.txt            # Python dependencies
 ├── .env                        # Perxona and OpenAI credentials
 ├── public/                     # Compiled React production bundle + static assets
 │   ├── satay_bg.jpg            # Alfresco Satay by the Bay backdrop image
+│   ├── satay_dish.jpg          # Food spotlight dish image
+│   ├── prata_dish.jpg          # Food spotlight dish image
 │   └── index.html              # Generated production entry point
 └── frontend/                   # React 19 + TypeScript source
     ├── package.json            # React, Vite, and Perxona type dependencies
-    ├── vite.config.ts          # Vite configuration with /api proxy to port 8086
+    ├── vite.config.ts          # Vite configuration with /api and asset proxies to port 8086
     ├── tsconfig.json           # Strict TypeScript configuration
     └── src/
         ├── main.tsx            # Application entry point
@@ -114,15 +118,16 @@ Bay/
             ├── PersonaSelector.tsx # Concierge avatar & voice switcher
             ├── QuickPrompts.tsx    # 3 scenario chips (40m Rush, Vegetarian, Replan)
             ├── AvatarStage.tsx     # 3D avatar container, audio overlay, subtitles
+            ├── FoodSpotlightCard.tsx # Visual hawker dish spotlight
             └── ChatPanel.tsx       # Message history, pulsing mic button, text fallback
 ```
 
 ---
 
-## ⚡ 5. Getting Started
+## 5. Getting Started
 
 ### Prerequisites
-- **Python 3.10+** (Python 3.11 recommended)
+- **Python 3.9+** (Tested and verified with **Python 3.9.16**; Python 3.10+ also supported)
 - **Node.js 18+** (Node 22 recommended) and **npm**
 
 ### Step 1: Clone the Repository
@@ -169,13 +174,19 @@ cd ..
 
 ### Step 5: Run the Server
 ```bash
+# Option 1: Using uvicorn CLI directly from the root
 python -m uvicorn main:app --host 127.0.0.1 --port 8086 --reload
+
+# Option 2: Running via Python entrypoint
+python main.py
+# or
+python backend/main.py
 ```
 Open your browser at **`http://localhost:8086`**.
 
 ---
 
-## 💻 6. Development Workflow (React HMR)
+## 6. Development Workflow (React HMR)
 
 For active frontend development with instant Hot Module Replacement:
 
@@ -189,23 +200,23 @@ For active frontend development with instant Hot Module Replacement:
    cd frontend
    npm run dev
    ```
-   Open **`http://localhost:5173`** (requests to `/api/*` are automatically proxied to port 8086).
+   Open **`http://localhost:5173`** (requests to `/api/*` and dish images are automatically proxied to port 8086).
 
 ---
 
-## 🎭 7. Hackathon Demo Scenarios
+## 7. Hackathon Demo Scenarios
 
 Test these 3 pre-configured scenarios using either the microphone button or the quick prompt chips:
 
 | Scenario | Input Prompt | Concierge & Route Card Action |
 | :--- | :--- | :--- |
-| **⏱️ 40m Rush (Halal Group)** | *"We have 40 mins before the 7:45 PM Supertree show, family of 3, Halal food under $30!"* | Routes Stall 1 (City Satay, $9.00) + Stall 5 (Sugar Cane Juice, $3.50). Visual countdown set to 38 mins with safety walking buffer. |
-| **🥗 Vegetarian & Nut-Free** | *"I am vegetarian and allergic to peanuts. What can I get before heading to the show?"* | Recommends Stall 4 (Garden Greens & Prata, $3.50) + Stall 5 (Fresh Coconut, $5.50). 100% plant-based and zero allergen risk. |
-| **🚨 Auto-Replan (Queue Delay)** | *"Satay queue is now 25 minutes delay! We need to leave in 20 minutes, please replan our order!"* | Proactively detects deadline breach, swaps Stall 1 for Stall 4 Prata ($10.00, 6m prep), updates countdown to 22 mins, and preserves safe arrival at the 7:45 PM Light Show. |
+| **40m Rush (Halal Group)** | *"We have 40 mins before the 7:45 PM Supertree show, family of 3, Halal food under $30!"* | Routes Stall 1 (City Satay, $9.00) + Stall 5 (Sugar Cane Juice, $3.50). Visual countdown set to 38 mins with safety walking buffer. |
+| **Vegetarian & Nut-Free** | *"I am vegetarian and allergic to peanuts. What can I get before heading to the show?"* | Recommends Stall 4 (Garden Greens & Prata, $3.50) + Stall 5 (Fresh Coconut, $5.50). 100% plant-based and zero allergen risk. |
+| **Auto-Replan (Queue Delay)** | *"Satay queue is now 25 minutes delay! We need to leave in 20 minutes, please replan our order!"* | Proactively detects deadline breach, swaps Stall 1 for Stall 4 Prata ($10.00, 6m prep), updates countdown to 22 mins, and preserves safe arrival at the 7:45 PM Light Show. |
 
 ---
 
-## 📝 8. Singlish & Local Food Phonetic Auto-Repair
+## 8. Singlish & Local Food Phonetic Auto-Repair
 
 Browser speech recognition often misinterprets local Singaporean terms. The backend automatically cleans transcription inaccuracies:
 - `sate` / `sata` $\rightarrow$ **Satay**
@@ -218,6 +229,6 @@ Browser speech recognition often misinterprets local Singaporean terms. The back
 
 ---
 
-## 📄 9. License
+## 9. License
 
 MIT License. Built for the Gardens by the Bay / Satay by the Bay Hackathon Showcase.

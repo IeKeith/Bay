@@ -423,8 +423,8 @@ if public_dir.exists():
 if __name__ == "__main__":
     import uvicorn
     print("\n==================================================")
-    print(f"🌿 Garden-to-Table Host (FastAPI Python) Ready!")
-    print(f"🌐 URL: http://localhost:{PORT}")
+    print("Garden-to-Table Host (FastAPI Python) Ready!")
+    print(f"URL: http://localhost:{PORT}")
     print("==================================================\n")
     uvicorn.run("main:app", host="0.0.0.0", port=PORT, reload=True)
 ```

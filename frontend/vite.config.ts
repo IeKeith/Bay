@@ -19,6 +19,12 @@ export default defineConfig({
       '/satay_bg.jpg': {
         target: 'http://localhost:8086',
       },
+      '/satay_dish.jpg': {
+        target: 'http://localhost:8086',
+      },
+      '/prata_dish.jpg': {
+        target: 'http://localhost:8086',
+      },
     },
   },
   build: {
