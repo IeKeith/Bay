@@ -1,8 +1,20 @@
+export interface FoodSuggestionAction {
+  stallId: number;
+  stallName: string;
+  dishName: string;
+  price: string;
+  prepTime?: string;
+  imageUrl?: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp?: number;
+  suggestedFood?: FoodSuggestionAction;
+  orderState?: 'idle' | 'added' | 'checked_out';
+  queueNumber?: number;
 }
 
 export interface AvatarOption {

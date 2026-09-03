@@ -4,43 +4,47 @@ import type { AvatarOption } from '../types/chat';
 interface PersonaSelectorProps {
   avatars: AvatarOption[];
   selectedAvatar: string;
-  onAvatarChange: (id: string) => void;
-  onReconnect: () => void;
+  onAvatarSelect: (id: string) => void;
   isPreloaded?: boolean;
 }
 
 export const PersonaSelector: React.FC<PersonaSelectorProps> = ({
   avatars,
   selectedAvatar,
-  onAvatarChange,
-  onReconnect,
+  onAvatarSelect,
   isPreloaded = true,
 }) => {
-  const [localIndex, setLocalIndex] = React.useState(() => {
+  const [previewIndex, setPreviewIndex] = React.useState(() => {
     const idx = avatars.findIndex((a) => a.id === selectedAvatar);
     return idx >= 0 ? idx : 0;
   });
 
   React.useEffect(() => {
     const idx = avatars.findIndex((a) => a.id === selectedAvatar);
-    if (idx >= 0) setLocalIndex(idx);
+    if (idx >= 0) setPreviewIndex(idx);
   }, [selectedAvatar, avatars]);
 
-  const activeIndex = localIndex >= 0 && localIndex < avatars.length ? localIndex : 0;
+  const activeIndex = previewIndex >= 0 && previewIndex < avatars.length ? previewIndex : 0;
   const currentAvatar = avatars[activeIndex] || null;
 
   const handlePrev = () => {
     if (avatars.length === 0) return;
     const prevIdx = (activeIndex - 1 + avatars.length) % avatars.length;
-    setLocalIndex(prevIdx);
-    onAvatarChange(avatars[prevIdx].id);
+    setPreviewIndex(prevIdx);
   };
 
   const handleNext = () => {
     if (avatars.length === 0) return;
     const nextIdx = (activeIndex + 1) % avatars.length;
-    setLocalIndex(nextIdx);
-    onAvatarChange(avatars[nextIdx].id);
+    setPreviewIndex(nextIdx);
+  };
+
+  const isCurrentActive = currentAvatar?.id === selectedAvatar;
+
+  const handleLockIn = () => {
+    if (currentAvatar) {
+      onAvatarSelect(currentAvatar.id);
+    }
   };
 
   return (
@@ -134,41 +138,29 @@ export const PersonaSelector: React.FC<PersonaSelectorProps> = ({
         </button>
       </div>
 
-      {/* Pagination Dots */}
-      <div className="avatar-dots-row">
-        {avatars.map((av, idx) => (
-          <button
-            key={av.id}
-            onClick={() => onAvatarChange(av.id)}
-            className={`avatar-dot ${idx === activeIndex ? 'active' : ''}`}
-            title={av.name}
-          />
-        ))}
-      </div>
 
-      {/* Matched Voice Indicator (Replaces manual dropdown) */}
-      <div
-        className="matched-voice-indicator"
-        style={{
-          margin: '6px 0 4px 0',
-          padding: '5px 10px',
-          background: 'rgba(255, 255, 255, 0.04)',
-          borderRadius: '8px',
-          border: '1px solid var(--border-subtle)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          fontSize: '0.75rem',
-        }}
+      {/* Lock In and Use Avatar Button */}
+      <button
+        onClick={handleLockIn}
+        className={isCurrentActive ? 'btn-locked' : 'btn-lock-in'}
+        title={isCurrentActive ? 'Currently active avatar (click to refresh)' : 'Lock in and switch to this avatar'}
       >
-        <span style={{ color: 'var(--text-muted)' }}>Matched Voice:</span>
-        <strong style={{ color: 'var(--botanical-light)' }}>
-          {currentAvatar?.voice_name || 'Assigned Voice'}
-        </strong>
-      </div>
-
-      <button onClick={onReconnect} className="btn-primary-ghost">
-        Reconnect Avatar
+        {isCurrentActive ? (
+          <>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <span>Active Avatar (In Use)</span>
+          </>
+        ) : (
+          <>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+            <span>Lock In &amp; Use Avatar</span>
+          </>
+        )}
       </button>
     </section>
   );

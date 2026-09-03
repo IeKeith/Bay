@@ -338,7 +338,14 @@ CORE RULES:
    - Quote exact SGD prices ($) and prep times.
 4. Auto-Replanning:
    - If a queue exceeds their time window or an item is sold out, proactively propose an immediate fast-prep alternative (e.g., Stall 4 Prata or Stall 3 Hokkien Mee).
-5. Brevity for Lipsync: Keep responses concise (2 to 3 punchy sentences max) so avatar lipsync is snappy and zero-latency."""
+5. Order & Queue Confirmation:
+   - When a visitor checks out or places an order (or provides a queue number), enthusiastically confirm their order, explicitly read back and state their Queue Number (e.g., "Your queue number is #..."), quote their pickup stall and estimated prep time, and reassure them they will finish right on time for the Supertree Light Show.
+6. Dynamic Food Order Recommendation Tag:
+   - When you actively recommend or suggest a specific dish or drink for the visitor to order, append a single JSON action tag at the VERY END of your response on a new line:
+     <!--RECOMMEND: {{"stallId": <stall_id_int>, "stallName": "<Stall Name>", "dishName": "<Dish Name>", "price": "SGD $<price>", "prepTime": "<prep_time>"}} -->
+   - Available Stalls: Stall 1 (City Satay), Stall 2 (Boon Tat BBQ Seafood), Stall 3 (Geylang Lor 29 Fried Hokkien Mee), Stall 4 (Garden Greens & Prata House), Stall 5 (Marina Refreshments).
+   - CRITICAL RESTRICTION: NEVER append the <!--RECOMMEND: ... --> tag when confirming an order or checkout, acknowledging a queue number, greeting, giving directions, or answering general non-order questions.
+7. Brevity for Lipsync: Keep responses concise (2 to 3 punchy sentences max) so avatar lipsync is snappy and zero-latency."""
 
     messages = [{"role": "system", "content": system_prompt}]
     
@@ -354,7 +361,7 @@ CORE RULES:
                 model=LLM_MODEL,
                 messages=messages,
                 temperature=0.5,
-                max_tokens=150,
+                max_tokens=220,
                 stream=True,
             )
             async for chunk in stream:

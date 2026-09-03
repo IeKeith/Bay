@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import type { ChatMessage } from '../types/chat';
+import type { ChatMessage, FoodSuggestionAction } from '../types/chat';
+import type { FoodSpotlight } from './FoodSpotlightCard';
 
 interface ChatPanelProps {
   messages: ChatMessage[];
@@ -8,8 +9,11 @@ interface ChatPanelProps {
   onToggleAutoListen: (val: boolean) => void;
   onToggleMic: () => void;
   onSendMessage: (text: string) => void;
+  onAddToCart?: (messageId: string, item: FoodSuggestionAction) => void;
+  onCheckout?: (messageId: string, item: FoodSuggestionAction) => void;
   personaName: string;
   repairNoticeText: string | null;
+  spotlight?: FoodSpotlight;
 }
 
 export const ChatPanel: React.FC<ChatPanelProps> = ({
@@ -19,8 +23,11 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   onToggleAutoListen,
   onToggleMic,
   onSendMessage,
+  onAddToCart,
+  onCheckout,
   personaName,
   repairNoticeText,
+  spotlight,
 }) => {
   const [inputText, setInputText] = useState('');
   const logRef = useRef<HTMLDivElement>(null);
@@ -67,6 +74,38 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
           </label>
         </div>
 
+        {/* Integrated Food Spotlight Banner in Chat */}
+        {spotlight && (
+          <div className="chat-spotlight-banner">
+            <div className="chat-spotlight-img-wrap">
+              <img
+                src={spotlight.imageUrl}
+                alt={spotlight.dishName}
+                className="chat-spotlight-img"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '/satay_dish.jpg';
+                }}
+              />
+              <span className="chat-spotlight-price">{spotlight.price}</span>
+            </div>
+
+            <div className="chat-spotlight-info">
+              <div className="chat-spotlight-header">
+                <span className="chat-spotlight-stall">Stall {spotlight.stallId} • {spotlight.stallName}</span>
+                <span className="badge-live-sync-pill">AI Synced</span>
+              </div>
+              <h4 className="chat-spotlight-title">{spotlight.dishName}</h4>
+              <div className="chat-spotlight-meta">
+                <span className="meta-tag meta-prep">{spotlight.prepTime}</span>
+                <span className="meta-tag meta-dietary">{spotlight.dietary}</span>
+              </div>
+              {spotlight.description && (
+                <p className="chat-spotlight-desc">{spotlight.description}</p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Messages Log */}
         <div className="chat-log" ref={logRef}>
           {messages.map((msg) => (
@@ -81,6 +120,80 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                 className="bubble-text"
                 dangerouslySetInnerHTML={renderFormattedText(msg.content)}
               />
+
+              {msg.suggestedFood && (
+                <div className="chat-food-suggestion-box">
+                  <div className="chat-food-suggestion-top">
+                    <div className="chat-food-thumb-wrap">
+                      <img
+                        src={msg.suggestedFood.imageUrl || (msg.suggestedFood.stallId === 4 ? '/prata_dish.jpg' : '/satay_dish.jpg')}
+                        alt={msg.suggestedFood.dishName}
+                        className="chat-food-thumb"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/satay_dish.jpg';
+                        }}
+                      />
+                    </div>
+                    <div className="chat-food-suggestion-info">
+                      <span className="chat-food-stall-badge">
+                        Stall {msg.suggestedFood.stallId} • {msg.suggestedFood.stallName}
+                      </span>
+                      <strong className="chat-food-dish-title">
+                        {msg.suggestedFood.dishName}
+                      </strong>
+                      <div className="chat-food-meta-row">
+                        <span className="chat-food-price-tag">{msg.suggestedFood.price}</span>
+                        {msg.suggestedFood.prepTime && (
+                          <span className="chat-food-prep-tag">⏱ {msg.suggestedFood.prepTime}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="chat-food-action-area">
+                    {msg.orderState === 'checked_out' ? (
+                      <div className="chat-order-status-badge success">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        <span>
+                          Order Confirmed! Queue <strong className="queue-num-highlight">#{msg.queueNumber || '108'}</strong>
+                        </span>
+                      </div>
+                    ) : msg.orderState === 'added' ? (
+                      <div className="chat-cart-btn-group">
+                        <span className="chat-in-cart-label">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                          Added ({msg.suggestedFood.price})
+                        </span>
+                        <button
+                          type="button"
+                          className="btn-chat-checkout"
+                          onClick={() => onCheckout?.(msg.id, msg.suggestedFood!)}
+                        >
+                          Checkout Now →
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn-chat-order"
+                        onClick={() => onAddToCart?.(msg.id, msg.suggestedFood!)}
+                        title={`Order ${msg.suggestedFood.dishName} at ${msg.suggestedFood.stallName}`}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="9" cy="21" r="1" />
+                          <circle cx="20" cy="21" r="1" />
+                          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+                        </svg>
+                        <span>Order at {msg.suggestedFood.stallName}</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>

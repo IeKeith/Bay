@@ -56,14 +56,16 @@ export const FoodSpotlightCard: React.FC<FoodSpotlightCardProps> = ({
         <p className="food-description">{spotlight.description}</p>
       </div>
 
-      {/* Action / Enticement CTA */}
-      <button
-        onClick={onOrderClick}
-        className="btn-order-stall"
-        title="Direct order route"
-      >
-        <span>Order at {spotlight.stallName}</span>
-      </button>
+      {/* Action CTA if provided */}
+      {onOrderClick && (
+        <button
+          onClick={onOrderClick}
+          className="btn-order-stall"
+          title="Direct order route"
+        >
+          <span>Order at {spotlight.stallName}</span>
+        </button>
+      )}
     </section>
   );
 };

@@ -1,0 +1,14 @@
+import type { AvatarOption } from '../types/chat';
+
+export function resolvePersonaName(avatars: AvatarOption[], selectedAvatarId: string): string {
+  const selectedObj = avatars.find((a) => a.id === selectedAvatarId);
+  if (!selectedObj) return 'Mei';
+
+  const name = selectedObj.name || '';
+  if (name.includes('Raj') || name.includes('cc069a02')) return 'Raj';
+  if (name.includes('Host') || name.includes('cc069a03')) return 'Host';
+  if (name.includes('Meeks') || name.includes('cc051')) return 'Meeks';
+  if (name.includes('Emojiboy') || name.includes('cc075')) return 'Emojiboy';
+  if (name.includes('Concierge') || name.includes('cc046')) return 'Concierge';
+  return 'Mei';
+}

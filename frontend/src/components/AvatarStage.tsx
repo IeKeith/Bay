@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import type { AvatarOption } from '../types/chat';
 
 interface AvatarStageProps {
   stageRef: React.RefObject<HTMLDivElement | null>;
@@ -8,17 +9,56 @@ interface AvatarStageProps {
   onUnlockAudio: () => void;
   personaName: string;
   subtitle: string;
+  avatars: AvatarOption[];
+  selectedAvatar: string;
+  isLockedIn: boolean;
+  onLockInAvatar: (id: string) => void;
+  onChangeAvatar: () => void;
 }
 
 export const AvatarStage: React.FC<AvatarStageProps> = ({
   stageRef,
   isReady,
   isSpeaking,
-  isAudioUnlocked,
-  onUnlockAudio,
   personaName,
   subtitle,
+  avatars,
+  selectedAvatar,
+  isLockedIn,
+  onLockInAvatar,
+  onChangeAvatar,
 }) => {
+  const [previewIndex, setPreviewIndex] = useState(() => {
+    const idx = avatars.findIndex((a) => a.id === selectedAvatar);
+    return idx >= 0 ? idx : 0;
+  });
+
+  useEffect(() => {
+    const idx = avatars.findIndex((a) => a.id === selectedAvatar);
+    if (idx >= 0) setPreviewIndex(idx);
+  }, [selectedAvatar, avatars]);
+
+  const activeIndex = previewIndex >= 0 && previewIndex < avatars.length ? previewIndex : 0;
+  const currentAvatar = avatars[activeIndex] || null;
+
+  const handlePrev = () => {
+    if (avatars.length === 0) return;
+    const prevIdx = (activeIndex - 1 + avatars.length) % avatars.length;
+    setPreviewIndex(prevIdx);
+  };
+
+  const handleNext = () => {
+    if (avatars.length === 0) return;
+    const nextIdx = (activeIndex + 1) % avatars.length;
+    setPreviewIndex(nextIdx);
+  };
+
+  const handleLockIn = () => {
+    if (currentAvatar) {
+      onLockInAvatar(currentAvatar.id);
+    }
+  };
+
   return (
     <section className="col-center">
       <div className="stage-container">
@@ -26,63 +66,182 @@ export const AvatarStage: React.FC<AvatarStageProps> = ({
         <div
           ref={stageRef}
           className="stage-element-holder"
-          style={{ width: '100%', height: '100%', position: 'relative', zIndex: 10 }}
+          style={{
+            width: '100%',
+            height: '100%',
+            position: 'relative',
+            zIndex: 10,
+            opacity: isLockedIn ? 1 : 0,
+            pointerEvents: isLockedIn ? 'auto' : 'none',
+            transition: 'opacity 0.35s ease',
+          }}
         />
 
-        {/* Autoplay Audio Unlock Overlay */}
-        {!isAudioUnlocked && (
-          <div className="audio-overlay">
-            <div className="overlay-card">
-              <div
-                className="overlay-icon-svg"
-                style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  marginBottom: '14px',
-                  color: 'var(--botanical-light)',
-                }}
+        {/* When NOT locked in: Show Avatar Selection in the middle! */}
+        {!isLockedIn ? (
+          <div className="center-persona-overlay">
+            <div className="center-persona-card">
+              <div className="center-persona-header">
+                <span className="badge badge-accent">Step 1: Choose Concierge</span>
+                <span className="badge badge-preloaded">Preloaded (0s Wait)</span>
+              </div>
+
+              <h2 className="center-persona-title">Select Your Concierge Avatar</h2>
+              <p className="center-persona-desc">
+                Browse through avatars using the arrows below, then lock in your choice to start your session.
+              </p>
+
+              {/* Avatar Carousel */}
+              <div className="center-carousel-wrap">
+                <button
+                  type="button"
+                  onClick={handlePrev}
+                  className="carousel-nav-btn prev-btn center-nav-btn"
+                  title="Previous Avatar"
+                  aria-label="Previous Avatar"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="15 18 9 12 15 6" />
+                  </svg>
+                </button>
+
+                <div className="center-avatar-preview">
+                  {currentAvatar?.thumbnail ? (
+                    <img
+                      src={currentAvatar.thumbnail}
+                      alt={currentAvatar.name}
+                      className="center-avatar-thumb"
+                    />
+                  ) : (
+                    <div className="center-avatar-placeholder">
+                      <svg
+                        width="40"
+                        height="40"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                      </svg>
+                    </div>
+                  )}
+
+                  <div className="center-avatar-meta">
+                    <strong className="center-avatar-name">
+                      {currentAvatar?.name || 'Selected Avatar'}
+                    </strong>
+                    <span className="center-avatar-role">
+                      {currentAvatar?.role || 'Concierge Host'}
+                    </span>
+                    <span className="center-avatar-index">
+                      {avatars.length > 0 ? `${activeIndex + 1} of ${avatars.length}` : ''}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  className="carousel-nav-btn next-btn center-nav-btn"
+                  title="Next Avatar"
+                  aria-label="Next Avatar"
+                >
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                </button>
+              </div>
+
+
+              {/* Lock-In Button */}
+              <button
+                type="button"
+                onClick={handleLockIn}
+                className="btn-lock-in center-lock-btn"
               >
                 <svg
-                  width="42"
-                  height="42"
+                  width="18"
+                  height="18"
                   viewBox="0 0 24 24"
                   fill="none"
                   stroke="currentColor"
-                  strokeWidth="1.8"
+                  strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                 >
-                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
-                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                 </svg>
-              </div>
-              <h2>Welcome to Satay by the Bay!</h2>
-              <p>Click below to unlock live 3D avatar voice and audio synthesis.</p>
-              <button onClick={onUnlockAudio} className="btn-glow">
-                Enter Concierge & Enable Audio
+                <span>Lock In &amp; Use Avatar</span>
               </button>
             </div>
           </div>
-        )}
+        ) : (
+          <>
+            {/* Live Speaking Indicator */}
+            <div className={`avatar-live-indicator ${isSpeaking ? 'speaking' : ''}`}>
+              <span className="indicator-pulse"></span>
+              <span>
+                {isSpeaking
+                  ? `${personaName} is Speaking...`
+                  : isReady
+                  ? `${personaName} is Ready`
+                  : `${personaName} (Connecting...)`}
+              </span>
+            </div>
 
-        {/* Live Speaking Indicator */}
-        <div className={`avatar-live-indicator ${isSpeaking ? 'speaking' : ''}`}>
-          <span className="indicator-pulse"></span>
-          <span>
-            {isSpeaking
-              ? `${personaName} is Speaking...`
-              : isReady
-              ? `${personaName} is Ready`
-              : `${personaName} (Connecting...)`}
-          </span>
-        </div>
+            {/* Switch Avatar Button */}
+            <button
+              type="button"
+              onClick={onChangeAvatar}
+              className="btn-switch-avatar"
+              title="Switch to another avatar"
+            >
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+              </svg>
+              <span>Switch Avatar</span>
+            </button>
 
-        {/* Spoken Subtitle Overlay */}
-        {subtitle && (
-          <div className="spoken-subtitle">
-            <span className="subtitle-speaker">{personaName}:</span>
-            <p>{subtitle}</p>
-          </div>
+            {/* Spoken Subtitle Overlay */}
+            {subtitle && (
+              <div className="spoken-subtitle">
+                <span className="subtitle-speaker">{personaName}:</span>
+                <p>{subtitle}</p>
+              </div>
+            )}
+          </>
         )}
       </div>
     </section>

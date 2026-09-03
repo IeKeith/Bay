@@ -1,7 +1,18 @@
 # Environment & Secrets
 .env
-.env*.local
+.env.*
+*.env
 !.env.example
+!.env.template
+*.pem
+*.key
+*serviceAccount*.json
+
+# Firebase
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
 
 # Python
 __pycache__/
@@ -33,6 +44,11 @@ venv/
 ENV/
 env/
 
+# Databases (Local / SQLite)
+*.sqlite
+*.sqlite3
+*.db-journal
+
 # Testing & Coverage (Python / JS)
 .coverage
 htmlcov/
@@ -49,6 +65,7 @@ dist-ssr/
 *.tsbuildinfo
 frontend/*.tsbuildinfo
 .eslintcache
+.vite/
 
 # Logs
 *.log
