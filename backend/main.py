@@ -34,14 +34,20 @@ if env_path.exists():
 else:
     load_dotenv()
 
-PORT = int(os.getenv("PORT", "8086"))
-PERXONA_API_BASE_URL = os.getenv("PERXONA_API_BASE_URL", "https://console.perxona.ai/asia")
-PRESENTER_URL = os.getenv("PRESENTER_URL", "https://cdn.perxona.ai/asia/prod/latest/widget/entry/presenter.js")
-PERXONA_CONNECT_EMAIL = os.getenv("PERXONA_CONNECT_EMAIL", "")
-PERXONA_CONNECT_PASSWORD = os.getenv("PERXONA_CONNECT_PASSWORD", "")
-LLM_API_KEY = os.getenv("LLM_API_KEY", "")
-LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://api.openai.com/v1")
-LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
+def _env_value(name: str, default: str = "") -> str:
+    """Return a trimmed environment value, using the default for blank values."""
+    return os.getenv(name, default).strip() or default
+
+
+PORT = int(_env_value("PORT", "8086"))
+PERXONA_API_BASE_URL = _env_value("PERXONA_API_BASE_URL", "https://console.perxona.ai/asia")
+PRESENTER_URL = _env_value("PRESENTER_URL", "https://cdn.perxona.ai/asia/prod/latest/widget/entry/presenter.js")
+PERXONA_CONNECT_EMAIL = _env_value("PERXONA_CONNECT_EMAIL")
+PERXONA_CONNECT_PASSWORD = _env_value("PERXONA_CONNECT_PASSWORD")
+# OPENAI_API_KEY is the standard SDK setting; retain LLM_API_KEY for existing deployments.
+LLM_API_KEY = _env_value("OPENAI_API_KEY") or _env_value("LLM_API_KEY")
+LLM_BASE_URL = _env_value("LLM_BASE_URL", "https://api.openai.com/v1")
+LLM_MODEL = _env_value("LLM_MODEL", "gpt-4o-mini")
 
 is_mock = not (PERXONA_CONNECT_EMAIL and PERXONA_CONNECT_PASSWORD)
 

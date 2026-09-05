@@ -2,6 +2,19 @@
 
 This document outlines the complete REST and Server-Sent Events (SSE) contract required from the backend for the React kiosk frontend (`/frontend`) to operate seamlessly.
 
+### Environment configuration
+
+Copy `backend/.env.example` to `backend/.env` and set the relevant values before
+starting the backend. `backend/.env` takes precedence over a root `.env` file.
+Blank optional URL or model values use the safe defaults in the example. `PORT`
+defaults to `8086`.
+
+Live Perxona access requires both `PERXONA_CONNECT_EMAIL` and
+`PERXONA_CONNECT_PASSWORD`; without them the existing mock presenter flow remains
+active. The LLM accepts `OPENAI_API_KEY` (preferred) or the existing
+`LLM_API_KEY` compatibility name. `LLM_BASE_URL` defaults to the OpenAI API base
+URL and `LLM_MODEL` defaults to `gpt-4o-mini`.
+
 ### Restaurant catalog
 
 `GET /api/menu` returns the structured JSON catalog (15 stalls, 35 dishes), with
