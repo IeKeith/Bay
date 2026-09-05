@@ -34,7 +34,12 @@ export const FoodSpotlightCard: React.FC<FoodSpotlightCardProps> = ({
           alt={spotlight.dishName}
           className="food-spotlight-img"
           onError={(e) => {
-            (e.target as HTMLImageElement).src = '/satay_dish.jpg';
+            // Fall back once. Re-assigning the same failing src (e.g. when the
+            // asset host is down) would retrigger onError in an infinite loop.
+            const img = e.currentTarget;
+            if (img.dataset.fallbackApplied) return;
+            img.dataset.fallbackApplied = 'true';
+            img.src = '/satay_dish.jpg';
           }}
         />
         <div className="food-image-overlay">
