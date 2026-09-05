@@ -35,16 +35,16 @@ const MODEL_URL =
   'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task';
 
 // ---------------------------------------------------------------------------
-// Tuning. These are deliberately conservative for a noisy kiosk environment;
-// adjust against the real camera + lighting.
+// Tuning. Adjust against the real camera + lighting.
 // ---------------------------------------------------------------------------
 const INFERENCE_INTERVAL_MS = 55; // ~18 fps — enough for gestures, easy on the GPU
-const SWIPE_WINDOW_MS = 450; // trailing window used to measure hand travel
-const SWIPE_MIN_TRAVEL = 0.22; // fraction of frame width a swipe must cover
-const SWIPE_MIN_SPAN_MS = 120; // ignore windows shorter than this
-const SWIPE_COOLDOWN_MS = 900; // one deliberate motion = one step
-const CONFIRM_MIN_SCORE = 0.55; // MediaPipe confidence for a "Thumb_Up"
-const CONFIRM_HOLD_FRAMES = 10; // consecutive thumb-up frames before firing (~0.6s)
+const SWIPE_WINDOW_MS = 550; // trailing window used to measure hand travel
+const SWIPE_MIN_TRAVEL = 0.14; // fraction of frame width the palm must cover
+const SWIPE_MIN_SPAN_MS = 100; // ignore windows shorter than this
+const SWIPE_MONOTONIC_RATIO = 0.55; // share of steps that must go the same way
+const SWIPE_COOLDOWN_MS = 850; // one deliberate motion = one step
+const CONFIRM_MIN_SCORE = 0.45; // MediaPipe confidence for a "Thumb_Up"
+const CONFIRM_HOLD_FRAMES = 7; // consecutive thumb-up frames before firing (~0.4s)
 const CONFIRM_COOLDOWN_MS = 2000;
 const GESTURE_FLASH_MS = 800; // how long the HUD shows the last-fired gesture
 
@@ -54,7 +54,23 @@ const GESTURE_FLASH_MS = 800; // how long the HUD shows the last-fired gesture
 // travelling right, i.e. "next".
 const INVERT_SWIPE_X = false;
 
-const WRIST_LANDMARK = 0;
+// Palm-center landmarks: wrist + index-MCP + pinky-MCP. Averaging these tracks a
+// lateral wave better than the wrist alone (which barely moves when you pivot).
+const PALM_LANDMARKS = [0, 5, 17];
+
+// Verbose console tracing. Toggle at runtime from DevTools with:
+//   localStorage.setItem('gestureDebug', '1'); location.reload();
+//   localStorage.removeItem('gestureDebug'); location.reload();
+const DEBUG = (() => {
+  try {
+    return localStorage.getItem('gestureDebug') === '1';
+  } catch {
+    return false;
+  }
+})();
+const dlog = (...args: unknown[]) => {
+  if (DEBUG) console.log('[gesture]', ...args);
+};
 
 export type HandGestureStatus =
   | 'idle'
@@ -119,6 +135,7 @@ export function useHandGestures({
   const thumbFramesRef = useRef(0);
   const cooldownUntilRef = useRef(0);
   const lastInferenceRef = useRef(0);
+  const lastDebugLogRef = useRef(0);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const flashGesture = useCallback((g: FiredGesture) => {
@@ -142,6 +159,21 @@ export function useHandGestures({
       const hand: NormalizedLandmark[] | undefined = result.landmarks?.[0];
       const topGesture = result.gestures?.[0]?.[0];
 
+      if (DEBUG && now - lastDebugLogRef.current > 400) {
+        lastDebugLogRef.current = now;
+        dlog(
+          hand ? `hand ok (${hand.length} pts)` : 'no hand',
+          '| gesture:',
+          topGesture
+            ? `${topGesture.categoryName} ${topGesture.score.toFixed(2)}`
+            : 'none',
+          '| buf:',
+          swipeBufRef.current.length,
+          '| cooldown:',
+          Math.max(0, Math.round(cooldownUntilRef.current - now))
+        );
+      }
+
       if (!hand || hand.length === 0) {
         swipeBufRef.current = [];
         thumbFramesRef.current = 0;
@@ -159,6 +191,7 @@ export function useHandGestures({
         swipeBufRef.current = [];
         thumbFramesRef.current += 1;
         if (thumbFramesRef.current >= CONFIRM_HOLD_FRAMES) {
+          dlog('FIRE confirm (thumb up held)');
           flashGesture('ok');
           startCooldown(CONFIRM_COOLDOWN_MS);
           onConfirmRef.current();
@@ -179,11 +212,21 @@ export function useHandGestures({
         return;
       }
 
-      const wristX = hand[WRIST_LANDMARK]?.x;
-      if (typeof wristX !== 'number') return;
+      // Palm-center x (average of a few stable landmarks), normalised 0..1.
+      let sum = 0;
+      let count = 0;
+      for (const idx of PALM_LANDMARKS) {
+        const p = hand[idx];
+        if (p && typeof p.x === 'number') {
+          sum += p.x;
+          count += 1;
+        }
+      }
+      if (count === 0) return;
+      const palmX = sum / count;
 
       const buf = swipeBufRef.current;
-      buf.push({ x: wristX, t: now });
+      buf.push({ x: palmX, t: now });
       while (buf.length && now - buf[0].t > SWIPE_WINDOW_MS) buf.shift();
 
       if (buf.length < 3) return;
@@ -191,17 +234,28 @@ export function useHandGestures({
       if (span < SWIPE_MIN_SPAN_MS) return;
 
       const dx = buf[buf.length - 1].x - buf[0].x;
-      if (Math.abs(dx) < SWIPE_MIN_TRAVEL) return;
+      if (Math.abs(dx) < SWIPE_MIN_TRAVEL) {
+        if (DEBUG && Math.abs(dx) > 0.05 && now - lastDebugLogRef.current > 350) {
+          lastDebugLogRef.current = now;
+          dlog(`swipe building… dx=${dx.toFixed(3)} (need ${SWIPE_MIN_TRAVEL})`);
+        }
+        return;
+      }
 
       // Require a reasonably monotonic sweep, not a jitter that nets out.
       let forward = 0;
       for (let i = 1; i < buf.length; i += 1) {
         if (Math.sign(buf[i].x - buf[i - 1].x) === Math.sign(dx)) forward += 1;
       }
-      if (forward / (buf.length - 1) < 0.6) return;
+      const monoRatio = forward / (buf.length - 1);
+      if (monoRatio < SWIPE_MONOTONIC_RATIO) {
+        dlog(`swipe rejected: not monotonic (${monoRatio.toFixed(2)})`);
+        return;
+      }
 
       let goRight = dx < 0; // see INVERT_SWIPE_X note above
       if (INVERT_SWIPE_X) goRight = !goRight;
+      dlog(`FIRE swipe ${goRight ? 'right' : 'left'} (dx=${dx.toFixed(3)})`);
 
       if (goRight) {
         flashGesture('right');
@@ -234,6 +288,8 @@ export function useHandGestures({
     let raf = 0;
     let stream: MediaStream | null = null;
     let recognizer: { recognizeForVideo: Function; close: () => void } | null = null;
+    let framesSeen = 0;
+    let lastErrLog = 0;
 
     const loop = () => {
       raf = requestAnimationFrame(loop);
@@ -245,8 +301,18 @@ export function useHandGestures({
       let result: GestureRecognizerResult;
       try {
         result = recognizer.recognizeForVideo(video, now) as GestureRecognizerResult;
-      } catch {
+      } catch (err) {
+        if (now - lastErrLog > 1000) {
+          lastErrLog = now;
+          console.warn('[gesture] recognizeForVideo threw:', err);
+        }
         return;
+      }
+      framesSeen += 1;
+      if (DEBUG && framesSeen === 1) {
+        dlog(
+          `first inference ok — video ${video.videoWidth}x${video.videoHeight}`
+        );
       }
       processResult(result, now);
     };
@@ -255,16 +321,19 @@ export function useHandGestures({
       setStatus('loading');
       setErrorText(null);
       try {
+        dlog('loading MediaPipe bundle…');
         const { FilesetResolver, GestureRecognizer } = await import(
           '@mediapipe/tasks-vision'
         );
         const vision = await FilesetResolver.forVisionTasks(WASM_BASE_URL);
         if (cancelled) return;
+        dlog('wasm ready, loading model…');
         recognizer = (await GestureRecognizer.createFromOptions(vision, {
           baseOptions: { modelAssetPath: MODEL_URL, delegate: 'GPU' },
           runningMode: 'VIDEO',
           numHands: 1,
         })) as unknown as typeof recognizer;
+        dlog('model ready');
         if (cancelled) {
           recognizer?.close();
           recognizer = null;
@@ -291,7 +360,8 @@ export function useHandGestures({
         }
         video.srcObject = stream;
         video.muted = true;
-        await video.play().catch(() => undefined);
+        await video.play().catch((e) => dlog('video.play() rejected:', e));
+        dlog('camera streaming, starting inference loop');
 
         setStatus('ready');
         setIsRunning(true);
