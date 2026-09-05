@@ -1,9 +1,16 @@
 export interface FoodSuggestionAction {
+  dishId?: string;
+  simulationTimestamp?: string;
+  estimatedPickupTime?: string;
   stallId: number;
   stallName: string;
   dishName: string;
   price: string;
   prepTime?: string;
+  prepMinutes?: number;
+  queueMinutes?: number;
+  estimatedTotalWait?: number;
+  dietaryTags?: string[];
   imageUrl?: string;
 }
 
@@ -13,8 +20,11 @@ export interface ChatMessage {
   content: string;
   timestamp?: number;
   suggestedFood?: FoodSuggestionAction;
-  orderState?: 'idle' | 'added' | 'checked_out';
+  orderState?: 'idle' | 'added' | 'submitting' | 'checked_out';
   queueNumber?: number;
+  orderId?: string;
+  estimatedPickupTime?: string;
+  checkoutError?: string;
 }
 
 export interface AvatarOption {

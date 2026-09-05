@@ -1,5 +1,51 @@
 # Garden-to-Table Host
 
+## Hawker catalog and Plan Summary
+
+The Markdown catalog contains **15 stalls and 35 menu choices** (including drinks,
+sides and desserts). The original five stalls live in `backend/satay_by_the_bay.md`;
+the root copy is used only if that file is absent. Ten additional stall files in
+`backend/data/hawkers/` add twenty Singapore hawker dishes. These additions use
+illustrative stall names, demo prices and simulated waits, not verified venue tenants.
+
+To add a stall, create a Markdown file in that directory with a unique `### Stall N: Name`
+heading, `Cuisine`, `Status`, `Service Capacity`, and `Signature Items` fields following an existing file.
+Include positive integer preparation minutes and capacity, nonnegative queue minutes, and SGD prices. Duplicate IDs,
+malformed menu items and missing timing fail validation with a file/line diagnostic.
+Files load at server startup; restart the backend after editing them. The backend
+uses the same combined catalog for the menu and AI recommendations.
+
+The app's **Plan Summary** shows items selected using the chat's order button,
+including hawker, food, preparation, queue and total estimated wait. Checkout keeps
+the item visible with its server-assigned demo queue number and predicted Singapore pickup date/time. Separate selections appear separately;
+repeated clicks on one selection do not duplicate it. Selections last for this page
+session only. Times are snapshots from the recommendation or successful checkout, with total wait equal to
+preparation plus queue; dining and walking buffers are separate. Missing timing is
+shown as “Unavailable”. Dietary tags describe the catalog recipe, not verified safety.
+
+Validation: `python -m unittest backend.test_hawker_catalog backend.test_simulation -v`; in `frontend`, run
+`npm test` and `npm run build`.
+
+## Active accelerated simulation
+
+FastAPI's lifespan starts one in-memory simulation at current Singapore time.
+Every real second advances one simulated minute; monotonic elapsed time catches up
+delayed ticks. Each startup generates a new seed, with reproducible customer
+arrivals every 3–8 simulated minutes per stall. Initial orders are seeded from the
+catalog's base queue, rounded up to complete service batches. All stalls stay open
+and all dishes remain orderable. Preparation occupies one cooking position;
+`Service Capacity` sets concurrent cooking positions. Orders wait FIFO for a free
+position. Queues reflect cumulative demand, so longer service times can build backlogs.
+
+Adding a selection does not order it. Checkout posts its `dishId` to `/api/orders`
+and joins the same queue as autonomous customers. Repeated clicks are guarded;
+failed checkout leaves the selection available for retry. Chat and recommendations
+read the authoritative simulation. The summary records returned estimates without
+polling, a dashboard, or a persistent clock.
+
+Run **one backend worker** for this demo. State is process-local, shared by visitors
+to that process, and resets on restart/reload. No simulation state is persisted.
+
 > **Voice-Enabled 3D AI Avatar Concierge for Satay by the Bay (Gardens by the Bay, Singapore)**  
 > Built with **React 19 + TypeScript + Vite**, **Python FastAPI Backend**, **OpenAI Streaming LLM**, and **Perxona Connect 3D Avatar API (`<sv-presenter>`)**.
 

@@ -83,7 +83,8 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                 alt={spotlight.dishName}
                 className="chat-spotlight-img"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = '/satay_dish.jpg';
+                  (e.target as HTMLImageElement).onerror = null;
+                  (e.target as HTMLImageElement).src = '/food-placeholder.svg';
                 }}
               />
               <span className="chat-spotlight-price">{spotlight.price}</span>
@@ -126,11 +127,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                   <div className="chat-food-suggestion-top">
                     <div className="chat-food-thumb-wrap">
                       <img
-                        src={msg.suggestedFood.imageUrl || (msg.suggestedFood.stallId === 4 ? '/prata_dish.jpg' : '/satay_dish.jpg')}
+                        src={msg.suggestedFood.imageUrl || '/food-placeholder.svg'}
                         alt={msg.suggestedFood.dishName}
                         className="chat-food-thumb"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/satay_dish.jpg';
+                          (e.target as HTMLImageElement).onerror = null;
+                          (e.target as HTMLImageElement).src = '/food-placeholder.svg';
                         }}
                       />
                     </div>
@@ -144,13 +146,15 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                       <div className="chat-food-meta-row">
                         <span className="chat-food-price-tag">{msg.suggestedFood.price}</span>
                         {msg.suggestedFood.prepTime && (
-                          <span className="chat-food-prep-tag">⏱ {msg.suggestedFood.prepTime}</span>
+                          <span className="chat-food-prep-tag">⏱ Est. wait: {msg.suggestedFood.prepTime} (simulated)</span>
                         )}
                       </div>
                     </div>
                   </div>
 
                   <div className="chat-food-action-area">
+                    <p className="plan-estimate-note">Accelerated demo-simulation timing</p>
+                    {msg.checkoutError && <p role="alert">{msg.checkoutError}</p>}
                     {msg.orderState === 'checked_out' ? (
                       <div className="chat-order-status-badge success">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -160,7 +164,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                           Order Confirmed! Queue <strong className="queue-num-highlight">#{msg.queueNumber || '108'}</strong>
                         </span>
                       </div>
-                    ) : msg.orderState === 'added' ? (
+                    ) : (msg.orderState === 'added' || msg.orderState === 'submitting') ? (
                       <div className="chat-cart-btn-group">
                         <span className="chat-in-cart-label">
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -171,9 +175,10 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                         <button
                           type="button"
                           className="btn-chat-checkout"
+                          disabled={msg.orderState === 'submitting'}
                           onClick={() => onCheckout?.(msg.id, msg.suggestedFood!)}
                         >
-                          Checkout Now →
+                          {msg.orderState === 'submitting' ? 'Submitting…' : 'Checkout Now →'}
                         </button>
                       </div>
                     ) : (

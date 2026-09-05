@@ -1,9 +1,11 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
+import { createCheckout, submitOrder } from '../utils/checkout';
 import { API_BASE_URL } from '../lib/api';
 import { DISH_CATALOG } from '../constants/dishes';
 import { checkPhoneticPreview } from '../utils/phonetic';
 import type { FoodSpotlight } from '../components/FoodSpotlightCard';
 import type { ChatMessage, FoodSuggestionAction } from '../types/chat';
+import { addSelection, validMinutes } from '../utils/planSummary';
 
 interface UseConciergeChatOptions {
   selectedAvatar: string;
@@ -11,7 +13,6 @@ interface UseConciergeChatOptions {
   resumeAudio: () => Promise<void>;
   presentSentence: (sentence: string) => void;
   stopListening: () => void;
-  updateRoutePlan: (text: string) => void;
 }
 
 export function useConciergeChat({
@@ -20,7 +21,6 @@ export function useConciergeChat({
   resumeAudio,
   presentSentence,
   stopListening,
-  updateRoutePlan,
 }: UseConciergeChatOptions) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -32,6 +32,8 @@ export function useConciergeChat({
   ]);
   const [foodSpotlight, setFoodSpotlight] = useState<FoodSpotlight>(DISH_CATALOG.satay);
   const [repairNoticeText, setRepairNoticeText] = useState<string | null>(null);
+
+  const checkout = useRef(createCheckout((dishId) => submitOrder(API_BASE_URL, dishId)));
 
   // Send Message & Stream LLM Response
   const handleSendMessage = useCallback(
@@ -57,7 +59,6 @@ export function useConciergeChat({
         content: text,
       };
       setMessages((prev) => [...prev, userMsg]);
-      updateRoutePlan(text);
 
       // Sync Food Spotlight with User Input
       const lowerText = text.toLowerCase();
@@ -110,12 +111,15 @@ export function useConciergeChat({
         if (!reader) return;
 
         let done = false;
+        let pendingStreamText = '';
         while (!done) {
           const { value, done: readerDone } = await reader.read();
           if (readerDone) break;
 
           const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n');
+          pendingStreamText += chunk;
+          const lines = pendingStreamText.split('\n');
+          pendingStreamText = lines.pop() || '';
 
           for (const line of lines) {
             if (!line.startsWith('data: ')) continue;
@@ -165,15 +169,22 @@ export function useConciergeChat({
           try {
             const parsed = JSON.parse(recommendMatch[1]);
             if (parsed && parsed.dishName && parsed.stallName) {
-              const fallbackImage = Number(parsed.stallId) === 4 ? '/prata_dish.jpg' : '/satay_dish.jpg';
+              const fallbackImage = '/food-placeholder.svg';
               const resolvedImage = parsed.imageUrl ? String(parsed.imageUrl) : fallbackImage;
 
               matchedFood = {
+                dishId: parsed.dishId,
+                simulationTimestamp: parsed.simulationTimestamp,
+                estimatedPickupTime: parsed.estimatedPickupTime,
                 stallId: Number(parsed.stallId) || 1,
                 stallName: String(parsed.stallName),
                 dishName: String(parsed.dishName),
                 price: String(parsed.price || 'SGD $9.00'),
                 prepTime: parsed.prepTime ? String(parsed.prepTime) : undefined,
+                prepMinutes: validMinutes(parsed.prepMinutes),
+                queueMinutes: validMinutes(parsed.queueMinutes),
+                estimatedTotalWait: validMinutes(parsed.estimatedTotalWait),
+                dietaryTags: Array.isArray(parsed.dietaryTags) ? parsed.dietaryTags.filter((tag: unknown) => typeof tag === 'string') : [],
                 imageUrl: resolvedImage,
               };
 
@@ -183,8 +194,8 @@ export function useConciergeChat({
                 stallName: matchedFood.stallName,
                 dishName: matchedFood.dishName,
                 price: matchedFood.price,
-                prepTime: matchedFood.prepTime || '~10-15 mins',
-                dietary: matchedFood.stallId === 4 ? '100% Halal & Vegetarian' : '100% Halal Certified',
+                prepTime: matchedFood.prepTime || 'Unavailable',
+                dietary: matchedFood.dietaryTags?.join(' · ') || 'Dietary information unavailable',
                 description: `Recommended by concierge from ${matchedFood.stallName}`,
                 imageUrl: resolvedImage,
               });
@@ -207,7 +218,6 @@ export function useConciergeChat({
           )
         );
 
-        updateRoutePlan(fullReply);
       } catch (err: any) {
         console.error('[ConciergeChat] Chat error:', err);
         setMessages((prev) =>
@@ -224,30 +234,32 @@ export function useConciergeChat({
       resumeAudio,
       selectedAvatar,
       stopListening,
-      updateRoutePlan,
     ]
   );
 
   const handleAddToCart = useCallback((messageId: string, _item: FoodSuggestionAction) => {
-    setMessages((prev) =>
-      prev.map((m) => (m.id === messageId ? { ...m, orderState: 'added' } : m))
-    );
+    setMessages((prev) => addSelection(prev, messageId));
   }, []);
 
   const handleCheckout = useCallback(
-    (messageId: string, item: FoodSuggestionAction) => {
-      // Generate a random 3-digit queue number between 100 and 999
-      const queueNumber = Math.floor(100 + Math.random() * 900);
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === messageId ? { ...m, orderState: 'checked_out', queueNumber } : m
-        )
-      );
-      void handleSendMessage(
-        `I have checked out my order for ${item.dishName} at ${item.stallName} (${item.price})! My assigned queue number is #${queueNumber}. Please confirm my queue number, prep time, and pickup directions.`
-      );
-    },
-    [handleSendMessage]
+    async (messageId: string, item: FoodSuggestionAction) => {
+      const receipt = await checkout.current(messageId, item, (state, order, error) => {
+        setMessages((prev) => prev.map((m) => m.id === messageId ? {
+          ...m, orderState: state, checkoutError: error,
+          ...(order ? {
+            queueNumber: order.queueNumber, orderId: order.orderId,
+            estimatedPickupTime: order.estimatedPickupTime,
+            suggestedFood: { ...item, ...order },
+          } : {}),
+        } : m));
+      });
+      if (receipt) {
+        setMessages((prev) => [...prev, {
+          id: `receipt-${receipt.orderId}`, role: 'assistant',
+          content: `Order confirmed at ${item.stallName}: ${item.dishName}. Queue #${receipt.queueNumber}. Accelerated demo-simulation: queue ${receipt.queueMinutes} min + preparation ${receipt.prepMinutes} min. Predicted pickup: ${receipt.estimatedPickupTime} (Singapore). Collect at ${item.stallName}.`,
+        }]);
+      }
+    }, []
   );
 
   return {

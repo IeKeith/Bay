@@ -2,6 +2,63 @@
 
 This document outlines the complete REST and Server-Sent Events (SSE) contract required from the backend for the React kiosk frontend (`/frontend`) to operate seamlessly.
 
+### Restaurant catalog
+
+`GET /api/menu` returns the structured JSON catalog (15 stalls, 35 dishes), with
+`sources: string[]` and `isDemo: true`. The sole source of truth is
+`backend/data/restaurant_catalog.json`; edit that file and restart the backend.
+The document uses `schemaVersion: 1`, with dishes nested under their stall for easy
+maintenance. The loader validates required strings, unique positive stall IDs,
+unique non-empty dish IDs, positive preparation minutes, nonnegative queue minutes
+and prices, tag arrays, optional popularity, and sold-out-rule structure. A missing,
+malformed, or invalid catalog fails startup with the JSON path and field location.
+
+The backend normalizes the JSON into the existing API shape: dishes are returned as
+a flat array with `stallId`; `priceDisplay`, `popularity`, `imageUrl`, and
+`description` receive deterministic defaults when omitted. A multi-price dish can
+set `priceDisplay` explicitly while `price` remains the numeric value used for
+filtering and scoring.
+
+Recommendation markers retain their existing format and `prepTime` string, and
+include numeric `prepMinutes`, `queueMinutes`, and `estimatedTotalWait` fields.
+`estimatedTotalWait = prepMinutes + queueMinutes`; it excludes dining and walking.
+The same definition applies to `GET /api/stall-log`. These are stored catalog estimates,
+not live queue readings. The primary recommendation also carries `dietaryTags`.
+The frontend preserves these fields on selected foods for its session-only Plan Summary.
+
+For a multi-price dish, `price` is the small-portion price used for scoring and
+`priceDisplay` preserves both prices (e.g. `SGD $16.00 / $22.00`).
+
+### Catalog-only chatbot
+
+`GET /api/menu` returns stored restaurant facts. Preparation time must be positive;
+queue estimates must be nonnegative. Service capacity is no longer required.
+
+`GET /api/stall-log` retains `{ "snapshot": ... }` with `source: "catalog"`,
+`timingBasis`, `generatedAt` (actual Unix seconds at projection), `minutesUntilShow`,
+`showTime`, and `stalls`. Each stall retains identity, stored `status`, `isOpen`,
+`queueMinutes`, `prepMinutes`, `estimatedTotalWait`, and `availability` (derived
+from the stored status and queue estimate). `soldOutDishIds` is empty: no stock
+events are generated. Timing stays fixed until catalog edits and backend restart.
+Show calculations use actual Singapore time. There is no simulation, demand,
+background clock, receipt, capacity, or visitor-order state.
+
+`POST /api/orders` has been removed. The chatbot cannot place or confirm orders,
+process checkout, or track queue numbers. Such requests receive an informational
+SSE response without a recommendation marker. Existing frontend checkout controls
+are unchanged and will fail; frontend cleanup belongs to a separate change.
+
+Restaurant names, stall numbers, and dish references select relevant catalog facts
+for both the LLM and fallback replies. Follow-up references can resolve from chat
+history; an explicit new reference takes priority. Unknown stall numbers do not
+silently substitute another stall. All timing is labeled as stored estimates,
+not live readings. Catalog loading/validation happens at backend startup.
+
+Recommendation payloads retain `dishId`, `prepTime`, `prepMinutes`, `queueMinutes`,
+and `estimatedTotalWait`. Simulation metadata and pickup timestamps are removed.
+The backend still appends the existing marker for recommendations, preserving the
+frontend streaming contract and avatar/voice integration.
+
 ---
 
 ## 1. General Network & Protocol Requirements
@@ -206,10 +263,10 @@ data: {"error": "Description of error"}
 
 ## 4. Food Recommendation Action Protocol (`<!--RECOMMEND: ... -->`)
 
-The frontend uses an **LLM-driven Action Protocol** to dynamically spawn the **In-Chat Order Card** and update the **Featured Stall Spotlight Banner**.
+The frontend consumes a backend-generated recommendation marker to display its existing food card and update the Featured Stall Spotlight Banner.
 
 ### How It Works:
-When the concierge AI is actively recommending a specific dish or drink to the visitor, the backend LLM must append a structured comment tag at the **very end** of its streamed response:
+When recommending a specific dish or drink, the backend appends a structured comment tag at the end of the streamed response. The LLM must not generate its own marker:
 
 ```html
 <!--RECOMMEND: {"stallId": 1, "stallName": "City Satay (Stall 1)", "dishName": "Charcoal-Grilled Chicken Satay", "price": "SGD $9.00", "prepTime": "~15 mins", "imageUrl": "/satay_dish.jpg"} -->
@@ -218,7 +275,7 @@ When the concierge AI is actively recommending a specific dish or drink to the v
 ### JSON Schema for Recommendation Payload:
 ```typescript
 interface RecommendationPayload {
-  stallId: number;          // 1 to 5 (Integer)
+  stallId: number;          // 1 to 15 (Integer)
   stallName: string;        // e.g., "City Satay (Stall 1)"
   dishName: string;         // e.g., "Charcoal-Grilled Chicken Satay"
   price: string;            // e.g., "SGD $9.00"
@@ -231,8 +288,7 @@ interface RecommendationPayload {
 1. **When to Emit**:
    - Only when **proposing or suggesting a food or drink item** for the user to order or consider.
 2. **When NEVER to Emit**:
-   - **Order Checkouts / Confirmations**: When the visitor checks out and sends their order message with their queue number, the LLM must **NOT** emit `<!--RECOMMEND: ... -->`.
-   - **Queue Readbacks**: When reading back or confirming a queue number (e.g., `#382`), do NOT emit this tag.
+   - **Ordering / Queue Tracking**: Explain that the chatbot provides information only; never confirm a purchase or queue number, and do not emit a marker.
    - **General Questions**: Directions to restrooms, Supertree Light Show timings, ATM locations, or greeting messages must NOT emit this tag.
 3. **Speech & Lipsync Safety**:
    - The frontend automatically filters `<!-- ... -->` from the sentence buffer so that the 3D avatar never speaks JSON or raw HTML tags.
@@ -248,5 +304,5 @@ interface RecommendationPayload {
 | **CORS Enabled** | Accepts requests from `*` or `http://localhost:5173`. | Required |
 | **SSE Streaming** | Streams `{"delta": "..."}` with terminal `[DONE]` for `/api/chat`. | Required |
 | **Token Dispatch** | Provides valid Perxona JWT via `/api/connect-token`. | Required |
-| **Action Tag Format** | LLM appends `<!--RECOMMEND: {...} -->` exclusively on food recommendations. | Required |
+| **Action Tag Format** | Backend appends `<!--RECOMMEND: {...} -->` exclusively on food recommendations. | Required |
 | **Phonetic Auto-Repair** | Backend STT repair helper for local Singlish food names (`satay`, `stingray`, `prata`, `supertree`). | Recommended |
