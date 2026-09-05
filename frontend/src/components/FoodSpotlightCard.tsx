@@ -34,7 +34,8 @@ export const FoodSpotlightCard: React.FC<FoodSpotlightCardProps> = ({
           alt={spotlight.dishName}
           className="food-spotlight-img"
           onError={(e) => {
-            (e.target as HTMLImageElement).src = '/satay_dish.jpg';
+            (e.target as HTMLImageElement).onerror = null;
+            (e.target as HTMLImageElement).src = '/food-placeholder.svg';
           }}
         />
         <div className="food-image-overlay">

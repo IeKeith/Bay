@@ -1,0 +1,209 @@
+{
+  "schemaVersion": 1,
+  "stalls": [
+    {
+      "id": 1,
+      "name": "City Satay (Halal-Certified)",
+      "cuisine": "Traditional Malay Charcoal-Grilled Satay & Ketupat",
+      "status": "Open",
+      "basePrepMinutes": 12,
+      "baseQueueMinutes": 8,
+      "bestFor": "Sharing platters, Halal dining, and a Singapore charcoal-grill experience.",
+      "dishes": [
+        {"id": "1-1", "name": "Chicken Satay (10 sticks)", "price": 9.0, "tags": ["gluten-free", "halal"]},
+        {"id": "1-2", "name": "Mutton Satay (10 sticks)", "price": 10.0, "tags": ["halal"]},
+        {"id": "1-3", "name": "Beef Satay (10 sticks)", "price": 10.0, "tags": ["halal"]},
+        {"id": "1-4", "name": "Ketupat Rice Cake & Peanut Gravy (2 pcs)", "price": 2.0, "tags": ["vegetarian", "contains peanuts"]}
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Boon Tat BBQ Seafood",
+      "cuisine": "Local Tze Char & Charcoal BBQ Seafood",
+      "status": "Open",
+      "basePrepMinutes": 15,
+      "baseQueueMinutes": 10,
+      "bestFor": "Flavourful communal seafood dinners; allow extra time for preparation.",
+      "dishes": [
+        {"id": "2-5", "name": "Sambal Stingray on Banana Leaf (Small/Medium)", "price": 16.0, "priceDisplay": "SGD $16.00 / $22.00", "tags": ["spicy", "contains shellfish", "contains shrimp paste"]},
+        {"id": "2-6", "name": "Garlic Butter Tiger Prawns (6 pcs)", "price": 18.0, "tags": ["contains shellfish"]},
+        {"id": "2-7", "name": "Stir-Fried Sambal Kang Kong", "price": 9.0, "tags": ["spicy"]}
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Geylang Lor 29 Fried Hokkien Mee",
+      "cuisine": "Wok-Fried Seafood Noodles",
+      "status": "Open",
+      "basePrepMinutes": 7,
+      "baseQueueMinutes": 5,
+      "bestFor": "Fast, filling comfort food for shorter dining windows.",
+      "dishes": [
+        {"id": "3-8", "name": "Traditional Prawn Hokkien Mee", "price": 7.5, "tags": ["pork", "prawn broth", "egg", "calamansi"]},
+        {"id": "3-9", "name": "Crispy Fried Carrot Cake (Black / White)", "price": 6.0, "tags": ["vegetarian option available"]}
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Garden Greens & Prata House (Halal & Vegetarian)",
+      "cuisine": "South Indian, Vegetarian & Muslim-Friendly",
+      "status": "Open",
+      "basePrepMinutes": 5,
+      "baseQueueMinutes": 3,
+      "bestFor": "Vegetarian, nut-aware, quick-turnaround, and budget meals.",
+      "dishes": [
+        {"id": "4-10", "name": "Crispy Plain Prata (2 pcs with Dhal)", "price": 3.5, "tags": ["vegetarian", "halal"]},
+        {"id": "4-11", "name": "Cheese & Mushroom Prata", "price": 5.0, "tags": ["vegetarian", "halal"]},
+        {"id": "4-12", "name": "Vegetarian Biryani with Papadum", "price": 8.5, "tags": ["plant-based"]}
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Marina Refreshments & Sugar Cane Bar",
+      "cuisine": "Local Cold Drinks & Tropical Fruits",
+      "status": "Open",
+      "basePrepMinutes": 2,
+      "baseQueueMinutes": 2,
+      "bestFor": "Cold drinks and desserts while waiting for hot food.",
+      "dishes": [
+        {"id": "5-13", "name": "Cold-Pressed Fresh Sugar Cane Juice with Lemon", "price": 3.5, "tags": ["vegan", "gluten-free"]},
+        {"id": "5-14", "name": "Fresh Thai Coconut", "price": 5.5, "tags": ["hydrating", "vegan"]},
+        {"id": "5-15", "name": "Chendol Shaved Ice with Gula Melaka", "price": 4.5, "tags": ["dessert", "contains coconut milk"]}
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Kampung Chicken Rice",
+      "cuisine": "Hainanese rice dishes",
+      "status": "Open",
+      "basePrepMinutes": 5,
+      "baseQueueMinutes": 5,
+      "bestFor": "Classic Singapore chicken rice with a short stored wait estimate.",
+      "dishes": [
+        {"id": "6-28", "name": "Steamed Chicken Rice", "price": 5.5, "tags": ["chicken", "contains soy"]},
+        {"id": "6-29", "name": "Roasted Chicken Rice", "price": 6.0, "tags": ["chicken", "contains soy"]}
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Katong Laksa Kitchen",
+      "cuisine": "Peranakan noodles",
+      "status": "Open",
+      "basePrepMinutes": 7,
+      "baseQueueMinutes": 5,
+      "bestFor": "Spicy Peranakan noodles and coconut-based laksa.",
+      "dishes": [
+        {"id": "7-30", "name": "Laksa", "price": 6.5, "tags": ["contains shellfish", "contains coconut", "spicy"]},
+        {"id": "7-31", "name": "Dry Laksa", "price": 7.0, "tags": ["contains shellfish", "contains coconut", "spicy"]}
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Coconut Rice Corner",
+      "cuisine": "Malay coconut rice",
+      "status": "Open",
+      "basePrepMinutes": 5,
+      "baseQueueMinutes": 4,
+      "bestFor": "Nasi lemak meals with chicken or fish.",
+      "dishes": [
+        {"id": "8-32", "name": "Chicken-Wing Nasi Lemak", "price": 6.0, "tags": ["chicken", "contains peanuts", "contains fish", "egg"]},
+        {"id": "8-33", "name": "Ikan Kuning Nasi Lemak", "price": 5.5, "tags": ["contains fish", "contains peanuts", "egg"]}
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Heritage Wok",
+      "cuisine": "Wok-fried noodles",
+      "status": "Open",
+      "basePrepMinutes": 8,
+      "baseQueueMinutes": 6,
+      "bestFor": "Smoky wok-fried noodle dishes.",
+      "dishes": [
+        {"id": "9-34", "name": "Char Kway Teow", "price": 6.0, "tags": ["pork", "contains shellfish", "egg"]},
+        {"id": "9-35", "name": "Mee Goreng", "price": 6.0, "tags": ["contains shellfish", "egg", "spicy"]}
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Teochew Fish Soup",
+      "cuisine": "Teochew soups",
+      "status": "Open",
+      "basePrepMinutes": 6,
+      "baseQueueMinutes": 4,
+      "bestFor": "Light fish soups and bee hoon.",
+      "dishes": [
+        {"id": "10-16", "name": "Sliced Fish Soup", "price": 6.0, "tags": ["contains fish", "contains soy"]},
+        {"id": "10-17", "name": "Fried Fish Bee Hoon Soup", "price": 6.5, "tags": ["contains fish", "contains milk"]}
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Minced Meat Noodle House",
+      "cuisine": "Teochew noodles",
+      "status": "Open",
+      "basePrepMinutes": 6,
+      "baseQueueMinutes": 5,
+      "bestFor": "Minced meat and fishball noodle bowls.",
+      "dishes": [
+        {"id": "11-18", "name": "Bak Chor Mee", "price": 5.5, "tags": ["pork", "egg", "contains soy"]},
+        {"id": "11-19", "name": "Fishball Noodles", "price": 5.0, "tags": ["contains fish", "egg"]}
+      ]
+    },
+    {
+      "id": 12,
+      "name": "Soy & Rice Kitchen",
+      "cuisine": "Braised meats and rice",
+      "status": "Open",
+      "basePrepMinutes": 5,
+      "baseQueueMinutes": 5,
+      "bestFor": "Braised duck, pork, and rice dishes.",
+      "dishes": [
+        {"id": "12-20", "name": "Duck Rice", "price": 6.0, "tags": ["duck", "contains soy"]},
+        {"id": "12-21", "name": "Kway Chap", "price": 6.5, "tags": ["pork", "egg", "contains soy"]}
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Pepper Soup Kitchen",
+      "cuisine": "Peppery pork soups",
+      "status": "Open",
+      "basePrepMinutes": 6,
+      "baseQueueMinutes": 4,
+      "bestFor": "Peppery soup and braised pork dishes.",
+      "dishes": [
+        {"id": "13-22", "name": "Bak Kut Teh", "price": 8.0, "tags": ["pork", "pepper"]},
+        {"id": "13-23", "name": "Braised Pig's Trotters", "price": 8.0, "tags": ["pork", "contains soy"]}
+      ]
+    },
+    {
+      "id": 14,
+      "name": "Indian Hawker Kitchen",
+      "cuisine": "Indian and Malay hawker favourites",
+      "status": "Open",
+      "basePrepMinutes": 5,
+      "baseQueueMinutes": 4,
+      "bestFor": "Biryani and noodle dishes.",
+      "dishes": [
+        {"id": "14-24", "name": "Chicken Biryani", "price": 7.5, "tags": ["chicken", "contains milk"]},
+        {"id": "14-25", "name": "Mee Rebus", "price": 5.5, "tags": ["egg", "contains shellfish", "contains peanuts"]}
+      ]
+    },
+    {
+      "id": 15,
+      "name": "Sweet Heritage Desserts",
+      "cuisine": "Traditional desserts",
+      "status": "Open",
+      "basePrepMinutes": 3,
+      "baseQueueMinutes": 2,
+      "bestFor": "Traditional cold and warm desserts.",
+      "dishes": [
+        {"id": "15-26", "name": "Ice Kacang", "price": 3.5, "tags": ["vegetarian", "contains milk"]},
+        {"id": "15-27", "name": "Tau Suan", "price": 3.0, "tags": ["vegan", "contains wheat"]}
+      ]
+    }
+  ],
+  "soldOutRules": {
+    "sambal stingray": ["boon tat bbq tiger prawns", "geylang hokkien mee"],
+    "chicken satay": ["beef/mutton satay", "prata with dhal"]
+  }
+}

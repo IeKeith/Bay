@@ -5,7 +5,7 @@ import { ChatPanel } from './components/ChatPanel';
 
 import { usePresenter } from './hooks/usePresenter';
 import { useSpeech } from './hooks/useSpeech';
-import { useRoutePlan } from './hooks/useRoutePlan';
+import { PlanSummary } from './components/PlanSummary';
 import { useAvatarCatalog } from './hooks/useAvatarCatalog';
 import { useConciergeChat } from './hooks/useConciergeChat';
 import { resolvePersonaName } from './utils/persona';
@@ -13,7 +13,6 @@ import './App.css';
 
 export const App: React.FC = () => {
   const stageRef = useRef<HTMLDivElement>(null);
-  const { updateFromText } = useRoutePlan();
 
   // STT Auto-listen continuation
   const handlePerformanceFinished = useCallback(() => {
@@ -56,7 +55,6 @@ export const App: React.FC = () => {
     resumeAudio: presenter.resumeAudio,
     presentSentence: presenter.present,
     stopListening: speech.stopListening,
-    updateRoutePlan: updateFromText,
   });
 
   const personaName = resolvePersonaName(catalog.avatars, catalog.selectedAvatar);
@@ -96,6 +94,7 @@ export const App: React.FC = () => {
           repairNoticeText={chat.repairNoticeText}
           spotlight={chat.foodSpotlight}
         />
+        <PlanSummary messages={chat.messages} />
       </main>
     </div>
   );

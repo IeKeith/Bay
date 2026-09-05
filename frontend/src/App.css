@@ -152,7 +152,7 @@ body {
 /* ── 2-Column Grid Layout: Avatar Stage + Voice Chat & Food Spotlight ── */
 .kiosk-grid {
   display: grid;
-  grid-template-columns: minmax(360px, 0.9fr) minmax(520px, 1.45fr);
+  grid-template-columns: minmax(280px, 0.85fr) minmax(380px, 1.3fr) minmax(240px, 0.7fr);
   justify-content: center;
   gap: 18px;
   flex: 1;
@@ -1470,14 +1470,18 @@ sv-presenter[hidden] {
 /* Responsive */
 @media (max-width: 1024px) {
   .kiosk-grid {
-    grid-template-columns: minmax(360px, 1.1fr) minmax(320px, 1fr);
+    grid-template-columns: minmax(240px, 0.8fr) minmax(300px, 1fr);
     gap: 12px;
   }
+  .plan-summary { grid-column: 1 / -1; max-height: 260px; }
+  .kiosk-container { overflow-y: auto; }
+  .kiosk-grid { flex: none; }
 }
 
 @media (max-width: 860px) {
   .kiosk-container {
     height: auto;
+    max-height: none;
     min-height: 100vh;
     overflow-y: auto;
     padding: 8px 10px;
@@ -1490,4 +1494,32 @@ sv-presenter[hidden] {
   .stage-container {
     height: 440px;
   }
+  .plan-summary { max-height: none; }
+}
+
+.plan-summary { min-height: 0; overflow-y: auto; gap: 16px; }
+.plan-summary h2 { font-size: 1.2rem; }
+.plan-summary h3 { font-size: 1rem; line-height: 1.5; }
+.plan-estimate-note, .plan-empty { color: var(--text-muted); font-size: 0.8rem; line-height: 1.6; }
+.plan-items { list-style: none; display: grid; gap: 14px; }
+.plan-item { border: 1px solid var(--border-subtle); border-radius: 12px; padding: 12px; display: grid; gap: 8px; overflow-wrap: anywhere; }
+.plan-hawker { color: var(--satay-orange); font-size: 0.85rem; }
+.plan-timing { display: grid; gap: 6px; font-size: 0.8rem; }
+.plan-timing div { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.plan-timing dt { color: var(--text-muted); }
+.plan-timing dd { font-weight: 600; }
+.plan-order-state { color: var(--text-accent); font-size: 0.8rem; }
+
+.kiosk-grid > * { min-width: 0; }
+@media (max-width: 860px) {
+  .kiosk-grid { grid-template-columns: minmax(0, 1fr); }
+  .kiosk-header { flex-wrap: wrap; gap: 10px; padding: 12px; }
+  .col-right { height: 760px; }
+  .chat-header, .chat-spotlight-header, .chat-cart-btn-group { flex-wrap: wrap; gap: 8px; }
+  .chat-spotlight-banner { flex-direction: column; }
+  .chat-spotlight-stall, .chat-spotlight-tags { white-space: normal; }
+  .chat-food-suggestion-top { flex-wrap: wrap; }
+  .chat-food-suggestion-info { overflow-wrap: anywhere; }
+  .chat-spotlight-img-wrap { width: 100%; height: 90px; }
+  .plan-summary { width: 100%; }
 }
