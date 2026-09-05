@@ -8,11 +8,13 @@ import { useSpeech } from './hooks/useSpeech';
 import { useRoutePlan } from './hooks/useRoutePlan';
 import { useAvatarCatalog } from './hooks/useAvatarCatalog';
 import { useConciergeChat } from './hooks/useConciergeChat';
+import { useHandGestures } from './hooks/useHandGestures';
 import { resolvePersonaName } from './utils/persona';
 import './App.css';
 
 export const App: React.FC = () => {
   const stageRef = useRef<HTMLDivElement>(null);
+  const gestureVideoRef = useRef<HTMLVideoElement>(null);
   const { updateFromText } = useRoutePlan();
 
   // STT Auto-listen continuation
@@ -59,6 +61,24 @@ export const App: React.FC = () => {
     updateRoutePlan: updateFromText,
   });
 
+  // 5. Hand-Gesture Avatar Control (webcam, on-device MediaPipe)
+  //    Runs only while choosing an avatar; swipe to browse, thumbs-up to lock in.
+  const { stepPreview, lockInPreviewedAvatar } = catalog;
+  const handleGestureLeft = useCallback(() => stepPreview(-1), [stepPreview]);
+  const handleGestureRight = useCallback(() => stepPreview(1), [stepPreview]);
+  const handleGestureConfirm = useCallback(
+    () => lockInPreviewedAvatar(),
+    [lockInPreviewedAvatar]
+  );
+
+  const gestures = useHandGestures({
+    enabled: !catalog.isAvatarLocked,
+    videoRef: gestureVideoRef,
+    onSwipeLeft: handleGestureLeft,
+    onSwipeRight: handleGestureRight,
+    onConfirm: handleGestureConfirm,
+  });
+
   const personaName = resolvePersonaName(catalog.avatars, catalog.selectedAvatar);
 
   return (
@@ -78,8 +98,12 @@ export const App: React.FC = () => {
           avatars={catalog.avatars}
           selectedAvatar={catalog.selectedAvatar}
           isLockedIn={catalog.isAvatarLocked}
+          previewIndex={catalog.previewIndex}
+          onStepPreview={catalog.stepPreview}
           onLockInAvatar={catalog.handleLockInAvatar}
           onChangeAvatar={catalog.handleChangeAvatar}
+          gestureVideoRef={gestureVideoRef}
+          gesture={gestures}
         />
 
         {/* Right Column: Voice Chat with Integrated Food Spotlight */}

@@ -634,6 +634,90 @@ sv-presenter[hidden] {
   line-height: 1.4;
 }
 
+/* Hand-gesture control HUD */
+.gesture-hud {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  transition: border-color 0.2s, opacity 0.2s;
+}
+
+.gesture-hud.is-cooldown {
+  opacity: 0.7;
+}
+
+.gesture-hud.is-unavailable {
+  border-color: rgba(220, 130, 60, 0.4);
+}
+
+.gesture-cam-wrap {
+  position: relative;
+  width: 108px;
+  height: 81px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: #000;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.gesture-cam {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* selfie view so left/right matches the user's body */
+  transform: scaleX(-1);
+  display: block;
+}
+
+.gesture-flash {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #ffffff;
+  background: rgba(76, 154, 42, 0.72);
+  letter-spacing: 0.02em;
+  animation: fadeIn 0.12s ease;
+}
+
+.gesture-live-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4ade80;
+  box-shadow: 0 0 8px #4ade80;
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+
+.gesture-live-dot.dim {
+  background: #64748b;
+  box-shadow: none;
+  animation: none;
+}
+
+.gesture-hint-text {
+  font-size: 0.74rem;
+  color: #94a3b8;
+  line-height: 1.35;
+  text-align: left;
+}
+
+.gesture-hud.is-unavailable .gesture-hint-text {
+  color: #e0a06a;
+}
+
 .center-carousel-wrap {
   width: 100%;
   display: flex;
