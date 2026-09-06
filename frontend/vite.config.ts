@@ -25,6 +25,9 @@ export default defineConfig({
       '/prata_dish.jpg': {
         target: 'http://localhost:8086',
       },
+      '/img': {
+        target: 'http://localhost:8086',
+      },
     },
   },
   build: {

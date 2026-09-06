@@ -72,5 +72,5 @@ test('summary renders server timing and Singapore pickup across midnight', () =>
   const html = renderToStaticMarkup(React.createElement(PlanSummary, { messages: [{
     id: 'm', orderState: 'checked_out', suggestedFood: { ...food, ...receipt }, ...receipt,
   }] }));
-  for (const text of ['Queue #42', '10 min', '06 Sept', '00:05', 'SGT', 'Accelerated demo-simulation']) assert.ok(html.includes(text), text);
+  for (const text of ['Queue #42', '10 min', '06 Sept', '00:05', 'SGT']) assert.ok(html.includes(text), text);
 });

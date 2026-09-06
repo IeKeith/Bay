@@ -1,4 +1,4 @@
-import React, { useRef, useCallback } from 'react';
+import React, { useRef, useCallback, useState } from 'react';
 import { Header } from './components/Header';
 import { AvatarStage } from './components/AvatarStage';
 import { ChatPanel } from './components/ChatPanel';
@@ -10,12 +10,12 @@ import { useAvatarCatalog } from './hooks/useAvatarCatalog';
 import { useConciergeChat } from './hooks/useConciergeChat';
 import { useHandGestures } from './hooks/useHandGestures';
 import { resolvePersonaName } from './utils/persona';
+import { selectedPlanItems } from './utils/planSummary';
 import './App.css';
 
 export const App: React.FC = () => {
   const stageRef = useRef<HTMLDivElement>(null);
-  const gestureVideoRef = useRef<HTMLVideoElement>(null);
-  const { updateFromText } = useRoutePlan();
+  const [isCartOpen, setIsCartOpen] = useState(false);
 
   // STT Auto-listen continuation
   const handlePerformanceFinished = useCallback(() => {
@@ -61,25 +61,8 @@ export const App: React.FC = () => {
   });
 
   // 5. Hand-Gesture Avatar Control (webcam, on-device MediaPipe)
-  //    Runs only while choosing an avatar; swipe to browse, thumbs-up to lock in.
-  const { stepPreview, lockInPreviewedAvatar } = catalog;
-  const handleGestureLeft = useCallback(() => stepPreview(-1), [stepPreview]);
-  const handleGestureRight = useCallback(() => stepPreview(1), [stepPreview]);
-  const handleGestureConfirm = useCallback(
-    () => lockInPreviewedAvatar(),
-    [lockInPreviewedAvatar]
-  );
-
-  const gestures = useHandGestures({
-    enabled: !catalog.isAvatarLocked,
-    videoRef: gestureVideoRef,
-    onSwipeLeft: handleGestureLeft,
-    onSwipeRight: handleGestureRight,
-    onConfirm: handleGestureConfirm,
-  });
-
-  // 5. Hand-Gesture Avatar Control (webcam, on-device MediaPipe)
-  //    Runs only while choosing an avatar; swipe to browse, thumbs-up to lock in.
+  //    Runs in the background without camera UI preview; swipe to browse, thumbs-up to lock in.
+  const gestureVideoRef = useRef<HTMLVideoElement>(null);
   const { stepPreview, lockInPreviewedAvatar } = catalog;
   const handleGestureLeft = useCallback(() => stepPreview(-1), [stepPreview]);
   const handleGestureRight = useCallback(() => stepPreview(1), [stepPreview]);
@@ -97,10 +80,15 @@ export const App: React.FC = () => {
   });
 
   const personaName = resolvePersonaName(catalog.avatars, catalog.selectedAvatar);
+  const cartItems = selectedPlanItems(chat.messages);
 
   return (
     <div className="kiosk-container">
-      <Header statusText={catalog.statusText} />
+      <Header
+        statusText={catalog.statusText}
+        cartCount={cartItems.length}
+        onToggleCart={() => setIsCartOpen((prev) => !prev)}
+      />
 
       <main className="kiosk-grid">
         {/* Left / Center Column: 3D Avatar Stage / Persona Selector */}
@@ -119,7 +107,6 @@ export const App: React.FC = () => {
           onStepPreview={catalog.stepPreview}
           onLockInAvatar={catalog.handleLockInAvatar}
           onChangeAvatar={catalog.handleChangeAvatar}
-          gestureVideoRef={gestureVideoRef}
           gesture={gestures}
         />
 
@@ -137,10 +124,38 @@ export const App: React.FC = () => {
           repairNoticeText={chat.repairNoticeText}
           spotlight={chat.foodSpotlight}
         />
-        <PlanSummary messages={chat.messages} />
       </main>
+
+      {/* Hidden offscreen video for MediaPipe vision processing (no camera interface displayed) */}
+      <video
+        ref={gestureVideoRef}
+        playsInline
+        muted
+        autoPlay
+        aria-hidden="true"
+        tabIndex={-1}
+        style={{
+          position: 'fixed',
+          top: -9999,
+          left: -9999,
+          width: 640,
+          height: 480,
+          opacity: 0,
+          pointerEvents: 'none',
+          zIndex: -100,
+        }}
+      />
+
+      {/* Shopee/Lazada style slide-over Cart & Checkout Drawer */}
+      <PlanSummary
+        messages={chat.messages}
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        onCheckout={chat.handleCheckout}
+      />
     </div>
   );
 };
+
 
 export default App;

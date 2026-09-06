@@ -17,26 +17,9 @@ interface AvatarStageProps {
   onStepPreview: (dir: -1 | 1) => void;
   onLockInAvatar: (id: string) => void;
   onChangeAvatar: () => void;
-  /** Camera preview element driven by the gesture controller. */
-  gestureVideoRef: React.RefObject<HTMLVideoElement | null>;
-  gesture: UseHandGesturesResult;
-}
-
-function gestureHint(g: UseHandGesturesResult): string {
-  switch (g.status) {
-    case 'loading':
-      return 'Starting camera…';
-    case 'ready':
-      return 'Wave ✋ left / right to browse · hold 👍 to lock in';
-    case 'denied':
-      return 'Camera access blocked — use the arrows below.';
-    case 'unsupported':
-      return 'Gesture control needs a camera on a secure (https) page.';
-    case 'error':
-      return 'Camera unavailable — use the arrows below.';
-    default:
-      return '';
-  }
+  /** Camera preview element driven by the gesture controller (optional). */
+  gestureVideoRef?: React.RefObject<HTMLVideoElement | null>;
+  gesture?: UseHandGesturesResult;
 }
 
 export const AvatarStage: React.FC<AvatarStageProps> = ({
@@ -52,7 +35,6 @@ export const AvatarStage: React.FC<AvatarStageProps> = ({
   onStepPreview,
   onLockInAvatar,
   onChangeAvatar,
-  gestureVideoRef,
   gesture,
 }) => {
   const activeIndex =
@@ -60,20 +42,34 @@ export const AvatarStage: React.FC<AvatarStageProps> = ({
   const currentAvatar = avatars[activeIndex] || null;
   const isCurrentActive = currentAvatar?.id === selectedAvatar;
 
+  const [clickTrigger, setClickTrigger] = React.useState<'left' | 'right' | 'ok' | null>(null);
+
+  const triggerClick = (type: 'left' | 'right' | 'ok') => {
+    setClickTrigger(type);
+    setTimeout(() => {
+      setClickTrigger((prev) => (prev === type ? null : prev));
+    }, 450);
+  };
+
+  const isLeftActive = gesture?.lastGesture === 'left' || clickTrigger === 'left';
+  const isRightActive = gesture?.lastGesture === 'right' || clickTrigger === 'right';
+  const isConfirmActive = gesture?.lastGesture === 'ok' || clickTrigger === 'ok';
+
+  const flashLabel =
+    gesture?.lastGesture === 'left'
+      ? '◀ Previous'
+      : gesture?.lastGesture === 'right'
+      ? 'Next ▶'
+      : gesture?.lastGesture === 'ok'
+      ? '✓ Locking In'
+      : null;
+
   const handleLockIn = () => {
+    triggerClick('ok');
     if (currentAvatar) {
       onLockInAvatar(currentAvatar.id);
     }
   };
-
-  const flashLabel =
-    gesture.lastGesture === 'left'
-      ? '◀ Previous'
-      : gesture.lastGesture === 'right'
-      ? 'Next ▶'
-      : gesture.lastGesture === 'ok'
-      ? '✓ Locking in'
-      : null;
 
   return (
     <section className="col-center">
@@ -99,52 +95,35 @@ export const AvatarStage: React.FC<AvatarStageProps> = ({
             <div className="center-persona-card">
               <div className="center-persona-header">
                 <span className="badge badge-accent">Step 1: Choose Concierge</span>
-                <span className="badge badge-preloaded">Preloaded (0s Wait)</span>
               </div>
 
               <h2 className="center-persona-title">Select Your Concierge Avatar</h2>
               <p className="center-persona-desc">
-                Use the arrows, or wave your hand at the camera — swipe left / right
-                to browse and hold a thumbs-up to lock in.
+                Use the arrows below or hand gestures (wave left/right, hold thumbs-up) to choose your avatar.
               </p>
 
-              {/* Gesture control HUD */}
-              <div
-                className={`gesture-hud${gesture.inCooldown ? ' is-cooldown' : ''}${
-                  gesture.status === 'denied' ||
-                  gesture.status === 'unsupported' ||
-                  gesture.status === 'error'
-                    ? ' is-unavailable'
-                    : ''
-                }`}
-              >
-                <div className="gesture-cam-wrap">
-                  <video
-                    ref={gestureVideoRef}
-                    className="gesture-cam"
-                    playsInline
-                    muted
-                    autoPlay
-                  />
-                  {flashLabel && <span className="gesture-flash">{flashLabel}</span>}
-                  {gesture.status === 'ready' && !flashLabel && (
-                    <span
-                      className={`gesture-live-dot${
-                        gesture.inCooldown ? ' dim' : ''
-                      }`}
-                    />
-                  )}
+              {flashLabel && (
+                <div className="gesture-flash-badge">
+                  <span>{flashLabel}</span>
                 </div>
-                <span className="gesture-hint-text">{gestureHint(gesture)}</span>
-              </div>
+              )}
 
               {/* Avatar Carousel */}
-              <div className="center-carousel-wrap">
+              <div
+                className={`center-carousel-wrap ${
+                  isLeftActive ? 'swipe-active-left' : isRightActive ? 'swipe-active-right' : ''
+                }`}
+              >
                 <button
                   type="button"
-                  onClick={() => onStepPreview(-1)}
-                  className="carousel-nav-btn prev-btn center-nav-btn"
-                  title="Previous Avatar"
+                  onClick={() => {
+                    triggerClick('left');
+                    onStepPreview(-1);
+                  }}
+                  className={`carousel-nav-btn prev-btn center-nav-btn ${
+                    isLeftActive ? 'gesture-active' : ''
+                  }`}
+                  title="Previous Avatar (Swipe Left)"
                   aria-label="Previous Avatar"
                 >
                   <svg
@@ -164,12 +143,13 @@ export const AvatarStage: React.FC<AvatarStageProps> = ({
                 <div className="center-avatar-preview">
                   {currentAvatar?.thumbnail ? (
                     <img
+                      key={currentAvatar.id}
                       src={currentAvatar.thumbnail}
                       alt={currentAvatar.name}
                       className="center-avatar-thumb"
                     />
                   ) : (
-                    <div className="center-avatar-placeholder">
+                    <div className="center-avatar-placeholder" key={currentAvatar?.id || 'placeholder'}>
                       <svg
                         width="40"
                         height="40"
@@ -201,9 +181,14 @@ export const AvatarStage: React.FC<AvatarStageProps> = ({
 
                 <button
                   type="button"
-                  onClick={() => onStepPreview(1)}
-                  className="carousel-nav-btn next-btn center-nav-btn"
-                  title="Next Avatar"
+                  onClick={() => {
+                    triggerClick('right');
+                    onStepPreview(1);
+                  }}
+                  className={`carousel-nav-btn next-btn center-nav-btn ${
+                    isRightActive ? 'gesture-active' : ''
+                  }`}
+                  title="Next Avatar (Swipe Right)"
                   aria-label="Next Avatar"
                 >
                   <svg
@@ -226,7 +211,9 @@ export const AvatarStage: React.FC<AvatarStageProps> = ({
               <button
                 type="button"
                 onClick={handleLockIn}
-                className="btn-lock-in center-lock-btn"
+                className={`btn-lock-in center-lock-btn ${
+                  isConfirmActive ? 'gesture-active' : ''
+                }`}
               >
                 <svg
                   width="18"

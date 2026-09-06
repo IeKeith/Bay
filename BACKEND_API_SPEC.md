@@ -89,7 +89,7 @@ Provides configuration and bootstrap settings to initialize the Perxona 3D Avata
   "perxonaBaseUrl": "https://console.perxona.ai/asia",
   "defaults": {
     "avatarId": "01KVQ595FX6K4SJ182HRNFERTK",
-    "sceneId": "01KQEJD0NJFVM20M588K7D1E9Z",
+    "sceneId": "01K4NY76QJKD6RY4H1ETT4QJ6W",
     "voiceId": "01KY40Z9NTKTC5DMH8TD5S77RN"
   }
 }
@@ -164,8 +164,8 @@ Supplies the background environments available for the 3D avatar viewport.
 {
   "items": [
     {
-      "id": "01KQEJD0NJFVM20M588K7D1E9Z",
-      "name": "Satay by the Bay Alfresco Dining"
+      "id": "01K4NY76QJKD6RY4H1ETT4QJ6W",
+      "name": "sova_Abstract_1"
     }
   ]
 }

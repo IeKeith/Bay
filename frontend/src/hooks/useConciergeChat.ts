@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
-import { createCheckout, submitOrder } from '../utils/checkout';
+import { createCheckout, submitOrder, generateDemoReceipt, formatPickupTime } from '../utils/checkout';
+import { sanitizeForSpeech } from '../utils/speechSanitizer';
 import { API_BASE_URL } from '../lib/api';
 import { DISH_CATALOG } from '../constants/dishes';
 import { checkPhoneticPreview } from '../utils/phonetic';
@@ -27,13 +28,21 @@ export function useConciergeChat({
       id: 'welcome-1',
       role: 'assistant',
       content:
-        "Welcome to Satay by the Bay! I'm Mei, your culinary route guide. Tell me your party size, dietary needs, or budget, and I'll route your orders so you arrive at the **7:45 PM Supertree Light Show** with time to spare!",
+        "Welcome to Satay by the Bay! I'm Mei, your culinary route guide. Tell me your party size, dietary needs, or budget, and I'll route your orders so you arrive at the 7:45 PM Supertree Light Show with time to spare!",
     },
   ]);
   const [foodSpotlight, setFoodSpotlight] = useState<FoodSpotlight>(DISH_CATALOG.satay);
   const [repairNoticeText, setRepairNoticeText] = useState<string | null>(null);
 
-  const checkout = useRef(createCheckout((dishId) => submitOrder(API_BASE_URL, dishId)));
+  const checkout = useRef(
+    createCheckout(async (dishId, food) => {
+      try {
+        return await submitOrder(API_BASE_URL, dishId);
+      } catch {
+        return generateDemoReceipt(food || { dishId, prepMinutes: 8, queueMinutes: 4 });
+      }
+    })
+  );
 
   // Send Message & Stream LLM Response
   const handleSendMessage = useCallback(
@@ -134,17 +143,19 @@ export function useConciergeChat({
                 fullReply += parsed.delta;
                 sentenceBuffer += parsed.delta;
 
-                const cleanDisplay = fullReply.replace(/<!--[\s\S]*?(-->|$)/g, '').trim();
+                const cleanDisplay = fullReply
+                  .replace(/<!--[\s\S]*?(-->|$)/g, '')
+                  .replace(/\*\*/g, '')
+                  .trim();
                 setMessages((prev) =>
                   prev.map((m) => (m.id === botMsgId ? { ...m, content: cleanDisplay } : m))
                 );
 
-                // Sentence-by-sentence streaming into presenter (stripping any tags)
-                const match = sentenceBuffer.match(/^(.*?[.!?])(\s+.*|$)/s);
+                const match = sentenceBuffer.match(/^(.*?[.!?](?!\d))(\s+.*|$)/s);
                 if (match) {
                   const complete = match[1].trim();
                   sentenceBuffer = match[2] || '';
-                  const cleanSpeech = complete.replace(/<!--[\s\S]*?(-->|$)/g, '').trim();
+                  const cleanSpeech = sanitizeForSpeech(complete);
                   if (cleanSpeech) {
                     presentSentence(cleanSpeech);
                   }
@@ -154,8 +165,8 @@ export function useConciergeChat({
           }
         }
 
-        // Flush remaining sentence buffer (stripping any tags)
-        const finalSpeech = sentenceBuffer.replace(/<!--[\s\S]*?(-->|$)/g, '').trim();
+        // Flush remaining sentence buffer (stripping any tags & formatting currency/numbers)
+        const finalSpeech = sanitizeForSpeech(sentenceBuffer);
         if (finalSpeech) {
           presentSentence(finalSpeech);
         }
@@ -163,7 +174,10 @@ export function useConciergeChat({
         // Dynamically extract LLM-powered Food Recommendation Action Tag
         const recommendMatch = fullReply.match(/<!--RECOMMEND:\s*(\{[\s\S]*?\})\s*-->/);
         let matchedFood: FoodSuggestionAction | undefined;
-        const cleanFinalReply = fullReply.replace(/<!--[\s\S]*?(-->|$)/g, '').trim();
+        const cleanFinalReply = fullReply
+          .replace(/<!--[\s\S]*?(-->|$)/g, '')
+          .replace(/\*\*/g, '')
+          .trim();
 
         if (recommendMatch) {
           try {
@@ -254,12 +268,32 @@ export function useConciergeChat({
         } : m));
       });
       if (receipt) {
+        const pickupTime = formatPickupTime(receipt.estimatedPickupTime);
+        const totalWait = (receipt.prepMinutes || 0) + (receipt.queueMinutes || 0);
+        const waitDetails = receipt.queueMinutes && receipt.prepMinutes
+          ? ` (queue ~${receipt.queueMinutes} mins + prep ~${receipt.prepMinutes} mins)`
+          : '';
+
+        const confirmationText = `Order confirmed at ${item.stallName}: ${item.dishName}. Queue #${receipt.queueNumber}. Estimated wait: ~${totalWait} mins${waitDetails}. Predicted pickup: ${pickupTime} (Singapore time). Collect at ${item.stallName}.`;
+
         setMessages((prev) => [...prev, {
-          id: `receipt-${receipt.orderId}`, role: 'assistant',
-          content: `Order confirmed at ${item.stallName}: ${item.dishName}. Queue #${receipt.queueNumber}. Accelerated demo-simulation: queue ${receipt.queueMinutes} min + preparation ${receipt.prepMinutes} min. Predicted pickup: ${receipt.estimatedPickupTime} (Singapore). Collect at ${item.stallName}.`,
+          id: `receipt-${receipt.orderId}`,
+          role: 'assistant',
+          content: confirmationText,
         }]);
+
+        // Voice the confirmation aloud through Perxona Avatar with sanitized speech
+        if (!isAudioUnlocked) {
+          await resumeAudio().catch(() => {});
+        }
+        const spokenReceipt = sanitizeForSpeech(
+          `Order confirmed at ${item.stallName}: ${item.dishName}. Queue #${receipt.queueNumber}. Estimated wait: ~${totalWait} mins. Predicted pickup: ${pickupTime}. Collect at ${item.stallName}.`
+        );
+        if (spokenReceipt) {
+          presentSentence(spokenReceipt);
+        }
       }
-    }, []
+    }, [isAudioUnlocked, resumeAudio, presentSentence]
   );
 
   return {

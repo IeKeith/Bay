@@ -60,8 +60,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
       <section className="card chat-card">
         <div className="chat-header">
           <div className="chat-title-group">
-            <h3 className="card-title">Live Voice Chat</h3>
-            <span className="chat-subtitle">Continuous Voice-to-Voice AI</span>
+            <h3 className="card-title">Chat</h3>
           </div>
           <label className="toggle-wrap" title="Automatically listen after avatar speaks">
             <input
@@ -93,7 +92,6 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
             <div className="chat-spotlight-info">
               <div className="chat-spotlight-header">
                 <span className="chat-spotlight-stall">Stall {spotlight.stallId} • {spotlight.stallName}</span>
-                <span className="badge-live-sync-pill">AI Synced</span>
               </div>
               <h4 className="chat-spotlight-title">{spotlight.dishName}</h4>
               <div className="chat-spotlight-meta">
@@ -146,14 +144,14 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                       <div className="chat-food-meta-row">
                         <span className="chat-food-price-tag">{msg.suggestedFood.price}</span>
                         {msg.suggestedFood.prepTime && (
-                          <span className="chat-food-prep-tag">⏱ Est. wait: {msg.suggestedFood.prepTime} (simulated)</span>
+                          <span className="chat-food-prep-tag">⏱ Est. wait: {msg.suggestedFood.prepTime}</span>
                         )}
                       </div>
                     </div>
                   </div>
 
                   <div className="chat-food-action-area">
-                    <p className="plan-estimate-note">Accelerated demo-simulation timing</p>
+                    <p className="plan-estimate-note">Estimated prep & queue wait</p>
                     {msg.checkoutError && <p role="alert">{msg.checkoutError}</p>}
                     {msg.orderState === 'checked_out' ? (
                       <div className="chat-order-status-badge success">

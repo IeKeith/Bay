@@ -71,7 +71,7 @@ async function loadPresenterEngine(presenterUrl) {
   });
 }
 
-let activeSceneId = "01KQEJD0NJFVM20M588K7D1E9Z";
+let activeSceneId = "01K4NY76QJKD6RY4H1ETT4QJ6W";
 
 async function initPresenter() {
   try {
@@ -81,7 +81,7 @@ async function initPresenter() {
     const { connect_token } = await apiRequest("/api/connect-token");
     const targetAvatar = avatarSelect.value || config?.defaults?.avatarId || "01KZFW8613MF0AWNRR59BBDMG6";
     const targetVoice = voiceSelect.value || config?.defaults?.voiceId || undefined;
-    const targetScene = activeSceneId || config?.defaults?.sceneId || "01KQEJD0NJFVM20M588K7D1E9Z";
+    const targetScene = activeSceneId || config?.defaults?.sceneId || "01K4NY76QJKD6RY4H1ETT4QJ6W";
 
     avatarStatusLabel.textContent = "Initializing Avatar...";
     await avatarPresenter.initialize(connect_token, {

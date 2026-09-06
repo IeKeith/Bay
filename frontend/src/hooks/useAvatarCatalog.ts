@@ -19,7 +19,7 @@ export function useAvatarCatalog({
   const [voices, setVoices] = useState<VoiceOption[]>([]);
   const [selectedAvatar, setSelectedAvatar] = useState<string>('01KVQ595FX6K4SJ182HRNFERTK');
   const [selectedVoice, setSelectedVoice] = useState<string>('01KY40Z9NTKTC5DMH8TD5S77RT');
-  const [activeSceneId, setActiveSceneId] = useState<string>('01KQEJD0NJFVM20M588K7D1E9Z');
+  const [activeSceneId, setActiveSceneId] = useState<string>('01K4NY76QJKD6RY4H1ETT4QJ6W');
   const [statusText, setStatusText] = useState('Connecting...');
   const [isAvatarLocked, setIsAvatarLocked] = useState(false);
 
@@ -80,6 +80,11 @@ export function useAvatarCatalog({
             mock: false,
             chat: true,
             presenterUrl: 'https://cdn.perxona.ai/asia/prod/latest/widget/entry/presenter.js',
+            defaults: {
+              avatarId: '01KVQ595FX6K4SJ182HRNFERTK',
+              sceneId: '01K4NY76QJKD6RY4H1ETT4QJ6W',
+              voiceId: '01KY40Z9NTKTC5DMH8TD5S77RN',
+            },
           })),
           fetchJson<{ items: AvatarOption[] }>('/api/avatars').catch(() => ({ items: [] })),
           fetchJson<{ items: Array<{ id: string; name: string }> }>('/api/scenes').catch(() => ({ items: [] })),
@@ -92,7 +97,8 @@ export function useAvatarCatalog({
         setAvatars(avData.items || []);
         setVoices(vcData.items || []);
 
-        const initialScene = scData.items?.[0]?.id || '01KQEJD0NJFVM20M588K7D1E9Z';
+        // Target scene: sova_Abstract_1
+        const initialScene = '01K4NY76QJKD6RY4H1ETT4QJ6W';
         const initialAvatarObj = avData.items?.[0];
         const initialAvatar = initialAvatarObj?.id || '01KVQ595FX6K4SJ182HRNFERTK';
         const initialVoice = initialAvatarObj?.voice_id || '01KY40Z9NTKTC5DMH8TD5S77RN';

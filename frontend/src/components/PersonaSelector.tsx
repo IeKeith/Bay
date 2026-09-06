@@ -51,11 +51,6 @@ export const PersonaSelector: React.FC<PersonaSelectorProps> = ({
     <section className="card setup-card">
       <div className="card-header-row">
         <h3 className="card-title" style={{ marginBottom: 0 }}>Concierge Avatar</h3>
-        {isPreloaded && (
-          <span className="badge badge-preloaded" title="Avatars pre-rendered at startup">
-            Preloaded (0s Wait)
-          </span>
-        )}
       </div>
 
       {/* Avatar Carousel Switcher with Left / Right Buttons */}

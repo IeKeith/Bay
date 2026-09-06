@@ -29,10 +29,14 @@ import type {
 // README there) and point these at `/mediapipe/wasm` and
 // `/mediapipe/gesture_recognizer.task`.
 // ---------------------------------------------------------------------------
-const WASM_BASE_URL =
+const LOCAL_WASM_URL = '/mediapipe/wasm';
+const CDN_WASM_URL =
   'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm';
-const MODEL_URL =
+
+const LOCAL_MODEL_URL = '/mediapipe/gesture_recognizer.task';
+const CDN_MODEL_URL =
   'https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task';
+
 
 // ---------------------------------------------------------------------------
 // Tuning. Adjust against the real camera + lighting.
@@ -325,15 +329,48 @@ export function useHandGestures({
         const { FilesetResolver, GestureRecognizer } = await import(
           '@mediapipe/tasks-vision'
         );
-        const vision = await FilesetResolver.forVisionTasks(WASM_BASE_URL);
+        let vision;
+        try {
+          vision = await FilesetResolver.forVisionTasks(LOCAL_WASM_URL);
+          dlog('Loaded local WASM from', LOCAL_WASM_URL);
+        } catch (wasmErr) {
+          dlog('Local WASM failed, falling back to CDN:', wasmErr);
+          vision = await FilesetResolver.forVisionTasks(CDN_WASM_URL);
+        }
         if (cancelled) return;
         dlog('wasm ready, loading model…');
-        recognizer = (await GestureRecognizer.createFromOptions(vision, {
-          baseOptions: { modelAssetPath: MODEL_URL, delegate: 'GPU' },
-          runningMode: 'VIDEO',
-          numHands: 1,
-        })) as unknown as typeof recognizer;
-        dlog('model ready');
+
+        let recognizerInstance = null;
+        const modelPaths = [LOCAL_MODEL_URL, CDN_MODEL_URL];
+        for (const modelPath of modelPaths) {
+          try {
+            recognizerInstance = await GestureRecognizer.createFromOptions(vision, {
+              baseOptions: { modelAssetPath: modelPath, delegate: 'GPU' },
+              runningMode: 'VIDEO',
+              numHands: 1,
+            });
+            dlog('model ready via GPU with', modelPath);
+            break;
+          } catch (gpuErr) {
+            dlog('GPU delegate failed for', modelPath, gpuErr);
+            try {
+              recognizerInstance = await GestureRecognizer.createFromOptions(vision, {
+                baseOptions: { modelAssetPath: modelPath, delegate: 'CPU' },
+                runningMode: 'VIDEO',
+                numHands: 1,
+              });
+              dlog('model ready via CPU with', modelPath);
+              break;
+            } catch (cpuErr) {
+              dlog('CPU delegate failed for', modelPath, cpuErr);
+            }
+          }
+        }
+        if (!recognizerInstance) {
+          throw new Error('Failed to load GestureRecognizer model from both local and CDN');
+        }
+        recognizer = recognizerInstance as unknown as typeof recognizer;
+        dlog('Gesture recognizer ready');
         if (cancelled) {
           recognizer?.close();
           recognizer = null;
@@ -403,6 +440,19 @@ export function useHandGestures({
       setStatus('idle');
     };
   }, [enabled, videoRef, processResult]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as unknown as { __gestureDebug?: unknown }).__gestureDebug = {
+        isSupported,
+        isRunning,
+        status,
+        lastGesture,
+        inCooldown,
+        errorText,
+      };
+    }
+  }, [isSupported, isRunning, status, lastGesture, inCooldown, errorText]);
 
   return { isSupported, isRunning, status, lastGesture, inCooldown, errorText };
 }
