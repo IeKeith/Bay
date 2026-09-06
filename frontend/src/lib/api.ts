@@ -6,7 +6,8 @@
  * as static files, so a relative base URL works in both environments.
  */
 export const API_BASE_URL =
-  ((import.meta as any).env?.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') || '';
+  ((import.meta as any).env?.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ||
+  'https://garden-to-table-backend-xvqq6faqyq-as.a.run.app';
 
 export async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {

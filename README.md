@@ -1,7 +1,16 @@
 # Garden-to-Table Host
 
-> **Voice-Enabled 3D AI Avatar Concierge for Satay by the Bay (Gardens by the Bay, Singapore)**  
-> Built with **React 19 + TypeScript + Vite**, **Python FastAPI Backend**, **OpenAI Streaming LLM**, and **Perxona Connect 3D Avatar API (`<sv-presenter>`)**.
+## Project Name
+**Garden-to-Table Host** — Voice-Enabled 3D AI Avatar Concierge for Satay by the Bay (Gardens by the Bay, Singapore)
+
+## Project Description
+**Garden-to-Table Host** is an intelligent, multimodal kiosk concierge designed to assist visitors dining at **Satay by the Bay** while managing tight turnaround times before the iconic evening **7:45 PM Garden Rhapsody Light Show** at Supertree Grove.
+
+Powered by a **React 19 + TypeScript** frontend, a **Python FastAPI** backend, **OpenAI Streaming LLM** (`gpt-4o-mini`), and the **Perxona Connect 3D Avatar API (`<sv-presenter>`)**, the system delivers:
+- **Real-Time Voice-to-Voice Interaction**: Seamless Singapore English speech recognition with Singlish phonetic auto-repair and near-zero latency 3D avatar lipsync.
+- **Coordinated Multi-Stall Routing**: Calculates optimal ordering, pickup sequencing, and prep times across 15 hawker stalls and 35 dishes to ensure visitors finish dining and arrive at the light show on time.
+- **Constraint-Aware Recommendations**: Handles dietary requirements (Halal, Vegetarian, Nut/Shellfish allergies), budget limits, and group sizes with rich visual dish spotlights.
+- **Dynamic Auto-Replanning**: Intelligently suggests fast-prep alternatives if queues surge or time windows narrow.
 
 ---
 
