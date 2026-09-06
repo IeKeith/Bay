@@ -44,11 +44,11 @@ def _hash_seed(*parts: str) -> int:
 
 def _resolve_dish_image(dish_name: str, stall_name: str) -> str:
     text = f"{dish_name} {stall_name}".lower()
-    if "satay" in text:
+    if "satay" in text and "ketupat" not in text:
         return "/img/satay.jpeg"
-    if "stingray" in text or "prawn" in text or "kang kong" in text or "boon tat" in text:
+    if "stingray" in text:
         return "/img/sambal_stingray.jpeg"
-    if "hokkien mee" in text or "carrot cake" in text or "geylang" in text:
+    if "hokkien mee" in text:
         return "/img/hokkien_mee.jpeg"
     if "prata" in text:
         return "/img/roti_prata.jpeg"
@@ -60,7 +60,7 @@ def _resolve_dish_image(dish_name: str, stall_name: str) -> str:
         return "/img/thai_coconut.jpeg"
     if "calamansi" in text or "lime" in text:
         return "/img/calamansi_juice.jpeg"
-    if "kopi" in text or "teh" in text or "coffee" in text or "tea" in text:
+    if "kopi" in text or "teh" in text:
         return "/img/kopi_teh.jpeg"
     if "chendol" in text:
         return "/img/chendol.jpeg"
@@ -70,17 +70,17 @@ def _resolve_dish_image(dish_name: str, stall_name: str) -> str:
         return "/img/katong_laksa.jpeg"
     if "nasi lemak" in text:
         return "/img/nasi_lemak.jpeg"
-    if "char kway teow" in text or "mee goreng" in text or "heritage wok" in text:
+    if "char kway teow" in text:
         return "/img/char_kway_teow.jpeg"
-    if "fish soup" in text or "fish bee hoon" in text or "teochew fish" in text:
+    if "fish soup" in text:
         return "/img/fish_soup.jpeg"
-    if "bak chor mee" in text or "fishball" in text or "minced meat" in text:
+    if "bak chor mee" in text:
         return "/img/bak_chor_mee.jpeg"
-    if "duck rice" in text or "kway chap" in text:
+    if "duck rice" in text:
         return "/img/duck_rice.jpeg"
-    if "bak kut teh" in text or "trotter" in text or "pepper soup" in text:
+    if "bak kut teh" in text:
         return "/img/bak_kut_teh.jpeg"
-    if "ice kacang" in text or "tau suan" in text or "sweet heritage" in text:
+    if "ice kacang" in text:
         return "/img/ice_kacang.jpeg"
     return "/food-placeholder.svg"
 

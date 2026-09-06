@@ -31,6 +31,40 @@ export function usePresenter({
     reject?: (err: any) => void;
   } | null>(null);
 
+  // Sequential speech queue to prevent audio collisions and drops
+  const speechQueueRef = useRef<string[]>([]);
+  const isSpeakingRef = useRef(false);
+  const isReadyRef = useRef(false);
+
+  const processNextSpeech = useCallback(async () => {
+    if (!presenterRef.current || !isReadyRef.current || isSpeakingRef.current) {
+      return;
+    }
+    if (speechQueueRef.current.length === 0) {
+      return;
+    }
+
+    const nextPhrase = speechQueueRef.current.shift()!;
+    isSpeakingRef.current = true;
+    setIsSpeaking(true);
+    setSubtitle(nextPhrase);
+
+    try {
+      await presenterRef.current.resumeAudioPlayback?.().catch(() => {});
+      await presenterRef.current.present(nextPhrase);
+    } catch (err) {
+      console.warn('[Presenter] present error:', err);
+      isSpeakingRef.current = false;
+      setIsSpeaking(false);
+      if (speechQueueRef.current.length > 0) {
+        void processNextSpeechRef.current();
+      }
+    }
+  }, []);
+
+  const processNextSpeechRef = useRef(processNextSpeech);
+  processNextSpeechRef.current = processNextSpeech;
+
   // Mount <sv-presenter> once engine is loaded
   useEffect(() => {
     let active = true;
@@ -52,13 +86,19 @@ export function usePresenter({
             const detail = (e as CustomEvent<{ status: string }>).detail;
             if (detail?.status === 'Ready') {
               el.hidden = false;
+              isReadyRef.current = true;
               setIsReady(true);
+              if (speechQueueRef.current.length > 0 && !isSpeakingRef.current) {
+                void processNextSpeechRef.current();
+              }
             } else {
+              isReadyRef.current = false;
               setIsReady(false);
             }
           });
 
           el.addEventListener('PERFORMANCE_START', () => {
+            isSpeakingRef.current = true;
             setIsSpeaking(true);
           });
 
@@ -68,9 +108,14 @@ export function usePresenter({
           });
 
           el.addEventListener('ALL_PERFORMANCE_FINISHED', () => {
+            isSpeakingRef.current = false;
             setIsSpeaking(false);
-            setTimeout(() => setSubtitle(''), 1500);
-            finishedCbRef.current?.();
+            if (speechQueueRef.current.length === 0) {
+              setTimeout(() => setSubtitle(''), 1500);
+              finishedCbRef.current?.();
+            } else {
+              void processNextSpeechRef.current();
+            }
           });
 
           el.addEventListener('CONNECT_TOKEN_EXPIRED', async () => {
@@ -124,6 +169,7 @@ export function usePresenter({
 
   // Initialize presenter with token & target (queues safely if mounting)
   const initialize = useCallback(async (token: string, target: PresentationTarget) => {
+    isReadyRef.current = false;
     setIsReady(false);
 
     if (!presenterRef.current) {
@@ -140,14 +186,13 @@ export function usePresenter({
     }
   }, []);
 
-  // Present speech queue
+  // Present speech queue (enqueues and processes sequentially without collision)
   const present = useCallback(async (text: string) => {
-    if (!presenterRef.current || !text.trim()) return;
-    setSubtitle(text.trim());
-    try {
-      return await presenterRef.current.present(text.trim());
-    } catch (err) {
-      console.warn('[Presenter] present error:', err);
+    if (!text || !text.trim()) return;
+    const clean = text.trim();
+    speechQueueRef.current.push(clean);
+    if (isReadyRef.current && !isSpeakingRef.current) {
+      void processNextSpeechRef.current();
     }
   }, []);
 

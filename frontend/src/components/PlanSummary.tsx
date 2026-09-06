@@ -80,6 +80,7 @@ export function PlanSummary({ messages, isOpen, onClose, onCheckout }: PlanSumma
                     <p className="plan-hawker">{food.stallName}</p>
                     <h3>{food.dishName}</h3>
                     <p className="plan-price">{food.price}</p>
+                    {food.reason && <p className="plan-item-reason">💡 {food.reason}</p>}
                   </div>
                 </div>
 

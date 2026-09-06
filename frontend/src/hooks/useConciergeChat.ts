@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { createCheckout, submitOrder, generateDemoReceipt, formatPickupTime } from '../utils/checkout';
 import { sanitizeForSpeech } from '../utils/speechSanitizer';
 import { API_BASE_URL } from '../lib/api';
@@ -7,9 +7,11 @@ import { checkPhoneticPreview } from '../utils/phonetic';
 import type { FoodSpotlight } from '../components/FoodSpotlightCard';
 import type { ChatMessage, FoodSuggestionAction } from '../types/chat';
 import { addSelection, validMinutes } from '../utils/planSummary';
+import { buildWelcomeMessage } from '../utils/persona';
 
 interface UseConciergeChatOptions {
   selectedAvatar: string;
+  personaName?: string;
   isAudioUnlocked: boolean;
   resumeAudio: () => Promise<void>;
   presentSentence: (sentence: string) => void;
@@ -18,6 +20,7 @@ interface UseConciergeChatOptions {
 
 export function useConciergeChat({
   selectedAvatar,
+  personaName = 'Mei',
   isAudioUnlocked,
   resumeAudio,
   presentSentence,
@@ -27,12 +30,49 @@ export function useConciergeChat({
     {
       id: 'welcome-1',
       role: 'assistant',
-      content:
-        "Welcome to Satay by the Bay! I'm Mei, your culinary route guide. Tell me your party size, dietary needs, or budget, and I'll route your orders so you arrive at the 7:45 PM Supertree Light Show with time to spare!",
+      content: buildWelcomeMessage(personaName),
     },
   ]);
   const [foodSpotlight, setFoodSpotlight] = useState<FoodSpotlight>(DISH_CATALOG.satay);
   const [repairNoticeText, setRepairNoticeText] = useState<string | null>(null);
+
+  // Sync welcome message if persona changes before conversation starts
+  useEffect(() => {
+    setMessages((prev) => {
+      if (prev.length === 1 && prev[0].id === 'welcome-1') {
+        const updatedContent = buildWelcomeMessage(personaName);
+        if (prev[0].content !== updatedContent) {
+          return [{ ...prev[0], content: updatedContent }];
+        }
+      }
+      return prev;
+    });
+  }, [personaName]);
+
+  const speakWelcome = useCallback(
+    (name?: string) => {
+      const targetName = name || personaName;
+      const welcomeText = buildWelcomeMessage(targetName);
+      const cleanSpeech = sanitizeForSpeech(welcomeText);
+      if (cleanSpeech) {
+        presentSentence(cleanSpeech);
+      }
+    },
+    [personaName, presentSentence]
+  );
+
+  const speakMessage = useCallback(
+    async (text: string) => {
+      if (!isAudioUnlocked) {
+        await resumeAudio().catch(() => {});
+      }
+      const cleanSpeech = sanitizeForSpeech(text);
+      if (cleanSpeech) {
+        presentSentence(cleanSpeech);
+      }
+    },
+    [isAudioUnlocked, resumeAudio, presentSentence]
+  );
 
   const checkout = useRef(
     createCheckout(async (dishId, food) => {
@@ -141,7 +181,9 @@ export function useConciergeChat({
               const parsed = JSON.parse(dataStr);
               if (parsed.delta) {
                 fullReply += parsed.delta;
-                sentenceBuffer += parsed.delta;
+                if (!parsed.delta.includes('<!--RECOMMEND:')) {
+                  sentenceBuffer += parsed.delta;
+                }
 
                 const cleanDisplay = fullReply
                   .replace(/<!--[\s\S]*?(-->|$)/g, '')
@@ -151,7 +193,8 @@ export function useConciergeChat({
                   prev.map((m) => (m.id === botMsgId ? { ...m, content: cleanDisplay } : m))
                 );
 
-                const match = sentenceBuffer.match(/^(.*?[.!?](?!\d))(\s+.*|$)/s);
+                const cleanBuffer = sentenceBuffer.replace(/<!--[\s\S]*?(-->|$)/g, '');
+                const match = cleanBuffer.match(/^(.*?[.!?](?!\d))(\s+.*|$)/s);
                 if (match) {
                   const complete = match[1].trim();
                   sentenceBuffer = match[2] || '';
@@ -200,6 +243,8 @@ export function useConciergeChat({
                 estimatedTotalWait: validMinutes(parsed.estimatedTotalWait),
                 dietaryTags: Array.isArray(parsed.dietaryTags) ? parsed.dietaryTags.filter((tag: unknown) => typeof tag === 'string') : [],
                 imageUrl: resolvedImage,
+                reason: parsed.reason ? String(parsed.reason) : undefined,
+                portionNote: parsed.portionNote ? String(parsed.portionNote) : undefined,
               };
 
               // Dynamically sync the Featured Spotlight card with the LLM recommendation
@@ -210,7 +255,7 @@ export function useConciergeChat({
                 price: matchedFood.price,
                 prepTime: matchedFood.prepTime || 'Unavailable',
                 dietary: matchedFood.dietaryTags?.join(' · ') || 'Dietary information unavailable',
-                description: `Recommended by concierge from ${matchedFood.stallName}`,
+                description: matchedFood.reason || `Recommended by concierge from ${matchedFood.stallName}`,
                 imageUrl: resolvedImage,
               });
             }
@@ -303,5 +348,7 @@ export function useConciergeChat({
     handleSendMessage,
     handleAddToCart,
     handleCheckout,
+    speakWelcome,
+    speakMessage,
   };
 }

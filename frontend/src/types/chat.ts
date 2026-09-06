@@ -12,6 +12,8 @@ export interface FoodSuggestionAction {
   estimatedTotalWait?: number;
   dietaryTags?: string[];
   imageUrl?: string;
+  reason?: string;
+  portionNote?: string;
 }
 
 export interface ChatMessage {

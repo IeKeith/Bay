@@ -11,9 +11,12 @@ interface ChatPanelProps {
   onSendMessage: (text: string) => void;
   onAddToCart?: (messageId: string, item: FoodSuggestionAction) => void;
   onCheckout?: (messageId: string, item: FoodSuggestionAction) => void;
+  onSpeakMessage?: (text: string) => void;
   personaName: string;
   repairNoticeText: string | null;
   spotlight?: FoodSpotlight;
+  interimTranscript?: string;
+  liveTranscript?: string;
 }
 
 export const ChatPanel: React.FC<ChatPanelProps> = ({
@@ -25,9 +28,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
   onSendMessage,
   onAddToCart,
   onCheckout,
+  onSpeakMessage,
   personaName,
   repairNoticeText,
   spotlight,
+  interimTranscript,
+  liveTranscript,
 }) => {
   const [inputText, setInputText] = useState('');
   const logRef = useRef<HTMLDivElement>(null);
@@ -36,7 +42,16 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
     if (logRef.current) {
       logRef.current.scrollTop = logRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, liveTranscript]);
+
+  // Sync text input with live speech while listening
+  useEffect(() => {
+    if (isListening && liveTranscript) {
+      setInputText(liveTranscript);
+    } else if (!isListening) {
+      setInputText('');
+    }
+  }, [isListening, liveTranscript]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,7 +128,31 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
               className={`chat-bubble ${msg.role === 'user' ? 'user-bubble' : 'bot-bubble'}`}
             >
               <div className="bubble-sender">
-                {msg.role === 'user' ? 'You' : `${personaName} • Concierge`}
+                <span>{msg.role === 'user' ? 'You' : `${personaName} • Concierge`}</span>
+                {msg.role === 'assistant' && onSpeakMessage && (
+                  <button
+                    type="button"
+                    onClick={() => onSpeakMessage(msg.content)}
+                    className="bubble-listen-btn"
+                    title="Play voice speech"
+                    aria-label="Play voice speech"
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+                    </svg>
+                    <span>Listen</span>
+                  </button>
+                )}
               </div>
               <div
                 className="bubble-text"
@@ -147,6 +186,12 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                           <span className="chat-food-prep-tag">⏱ Est. wait: {msg.suggestedFood.prepTime}</span>
                         )}
                       </div>
+                      {msg.suggestedFood.reason && (
+                        <div className="chat-food-reason-badge">
+                          <span className="reason-icon">💡</span>
+                          <span className="reason-text">{msg.suggestedFood.reason}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -199,6 +244,19 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
               )}
             </div>
           ))}
+
+          {/* Live speech preview bubble in chatbox */}
+          {isListening && liveTranscript && (
+            <div className="chat-bubble user-bubble live-transcribing">
+              <div className="bubble-sender">
+                <span>You • Speaking...</span>
+              </div>
+              <div className="bubble-text">
+                {liveTranscript}
+                <span className="live-typing-indicator" aria-hidden="true"> ···</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Controls */}
@@ -240,7 +298,11 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
                 )}
               </span>
               <span className="mic-label">
-                {isListening ? 'Listening... Speak now' : 'Tap to Speak'}
+                {isListening
+                  ? interimTranscript
+                    ? `Listening: "${interimTranscript}"`
+                    : 'Listening... Speak now'
+                  : 'Tap to Speak'}
               </span>
             </button>
           </div>
@@ -257,7 +319,7 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              placeholder="Or type a question or dietary request..."
+              placeholder={isListening ? "Listening... speak now" : "Or type a question or dietary request..."}
               autoComplete="off"
             />
             <button

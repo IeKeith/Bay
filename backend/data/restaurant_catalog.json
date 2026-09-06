@@ -37,16 +37,6 @@
             "halal"
           ],
           "imageUrl": "/img/satay.jpeg"
-        },
-        {
-          "id": "1-4",
-          "name": "Ketupat Rice Cake & Peanut Gravy (2 pcs)",
-          "price": 2.0,
-          "tags": [
-            "vegetarian",
-            "contains peanuts"
-          ],
-          "imageUrl": "/img/satay.jpeg"
         }
       ]
     },
@@ -68,24 +58,6 @@
             "spicy",
             "contains shellfish",
             "contains shrimp paste"
-          ],
-          "imageUrl": "/img/sambal_stingray.jpeg"
-        },
-        {
-          "id": "2-6",
-          "name": "Garlic Butter Tiger Prawns (6 pcs)",
-          "price": 18.0,
-          "tags": [
-            "contains shellfish"
-          ],
-          "imageUrl": "/img/sambal_stingray.jpeg"
-        },
-        {
-          "id": "2-7",
-          "name": "Stir-Fried Sambal Kang Kong",
-          "price": 9.0,
-          "tags": [
-            "spicy"
           ],
           "imageUrl": "/img/sambal_stingray.jpeg"
         }
@@ -111,15 +83,6 @@
             "calamansi"
           ],
           "imageUrl": "/img/hokkien_mee.jpeg"
-        },
-        {
-          "id": "3-9",
-          "name": "Crispy Fried Carrot Cake (Black / White)",
-          "price": 6.0,
-          "tags": [
-            "vegetarian option available"
-          ],
-          "imageUrl": "/img/hokkien_mee.jpeg"
         }
       ]
     },
@@ -141,25 +104,6 @@
             "halal"
           ],
           "imageUrl": "/img/roti_prata.jpeg"
-        },
-        {
-          "id": "4-11",
-          "name": "Cheese & Mushroom Prata",
-          "price": 5.0,
-          "tags": [
-            "vegetarian",
-            "halal"
-          ],
-          "imageUrl": "/img/roti_prata.jpeg"
-        },
-        {
-          "id": "4-12",
-          "name": "Vegetarian Biryani with Papadum",
-          "price": 8.5,
-          "tags": [
-            "plant-based"
-          ],
-          "imageUrl": "/img/chicken_biryani.jpeg"
         }
       ]
     },
@@ -201,6 +145,27 @@
             "contains coconut milk"
           ],
           "imageUrl": "/img/chendol.jpeg"
+        },
+        {
+          "id": "5-16",
+          "name": "Fresh Calamansi Lime Juice",
+          "price": 3.0,
+          "tags": [
+            "vegan",
+            "refreshing"
+          ],
+          "imageUrl": "/img/calamansi_juice.jpeg"
+        },
+        {
+          "id": "5-17",
+          "name": "Traditional Nanyang Kopi & Teh",
+          "price": 2.5,
+          "tags": [
+            "coffee",
+            "tea",
+            "traditional"
+          ],
+          "imageUrl": "/img/kopi_teh.jpeg"
         }
       ]
     },
@@ -254,17 +219,6 @@
             "spicy"
           ],
           "imageUrl": "/img/katong_laksa.jpeg"
-        },
-        {
-          "id": "7-31",
-          "name": "Dry Laksa",
-          "price": 7.0,
-          "tags": [
-            "contains shellfish",
-            "contains coconut",
-            "spicy"
-          ],
-          "imageUrl": "/img/katong_laksa.jpeg"
         }
       ]
     },
@@ -285,17 +239,6 @@
             "chicken",
             "contains peanuts",
             "contains fish",
-            "egg"
-          ],
-          "imageUrl": "/img/nasi_lemak.jpeg"
-        },
-        {
-          "id": "8-33",
-          "name": "Ikan Kuning Nasi Lemak",
-          "price": 5.5,
-          "tags": [
-            "contains fish",
-            "contains peanuts",
             "egg"
           ],
           "imageUrl": "/img/nasi_lemak.jpeg"
@@ -321,17 +264,6 @@
             "egg"
           ],
           "imageUrl": "/img/char_kway_teow.jpeg"
-        },
-        {
-          "id": "9-35",
-          "name": "Mee Goreng",
-          "price": 6.0,
-          "tags": [
-            "contains shellfish",
-            "egg",
-            "spicy"
-          ],
-          "imageUrl": "/img/char_kway_teow.jpeg"
         }
       ]
     },
@@ -351,16 +283,6 @@
           "tags": [
             "contains fish",
             "contains soy"
-          ],
-          "imageUrl": "/img/fish_soup.jpeg"
-        },
-        {
-          "id": "10-17",
-          "name": "Fried Fish Bee Hoon Soup",
-          "price": 6.5,
-          "tags": [
-            "contains fish",
-            "contains milk"
           ],
           "imageUrl": "/img/fish_soup.jpeg"
         }
@@ -385,16 +307,6 @@
             "contains soy"
           ],
           "imageUrl": "/img/bak_chor_mee.jpeg"
-        },
-        {
-          "id": "11-19",
-          "name": "Fishball Noodles",
-          "price": 5.0,
-          "tags": [
-            "contains fish",
-            "egg"
-          ],
-          "imageUrl": "/img/bak_chor_mee.jpeg"
         }
       ]
     },
@@ -413,17 +325,6 @@
           "price": 6.0,
           "tags": [
             "duck",
-            "contains soy"
-          ],
-          "imageUrl": "/img/duck_rice.jpeg"
-        },
-        {
-          "id": "12-21",
-          "name": "Kway Chap",
-          "price": 6.5,
-          "tags": [
-            "pork",
-            "egg",
             "contains soy"
           ],
           "imageUrl": "/img/duck_rice.jpeg"
@@ -448,16 +349,6 @@
             "pepper"
           ],
           "imageUrl": "/img/bak_kut_teh.jpeg"
-        },
-        {
-          "id": "13-23",
-          "name": "Braised Pig's Trotters",
-          "price": 8.0,
-          "tags": [
-            "pork",
-            "contains soy"
-          ],
-          "imageUrl": "/img/bak_kut_teh.jpeg"
         }
       ]
     },
@@ -477,17 +368,6 @@
           "tags": [
             "chicken",
             "contains milk"
-          ],
-          "imageUrl": "/img/chicken_biryani.jpeg"
-        },
-        {
-          "id": "14-25",
-          "name": "Mee Rebus",
-          "price": 5.5,
-          "tags": [
-            "egg",
-            "contains shellfish",
-            "contains peanuts"
           ],
           "imageUrl": "/img/chicken_biryani.jpeg"
         }
@@ -511,28 +391,17 @@
             "contains milk"
           ],
           "imageUrl": "/img/ice_kacang.jpeg"
-        },
-        {
-          "id": "15-27",
-          "name": "Tau Suan",
-          "price": 3.0,
-          "tags": [
-            "vegan",
-            "contains wheat"
-          ],
-          "imageUrl": "/img/ice_kacang.jpeg"
         }
       ]
     }
   ],
   "soldOutRules": {
     "sambal stingray": [
-      "boon tat bbq tiger prawns",
       "geylang hokkien mee"
     ],
     "chicken satay": [
       "beef/mutton satay",
-      "prata with dhal"
+      "crispy plain prata"
     ]
   }
 }

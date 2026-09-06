@@ -17,10 +17,12 @@ export const App: React.FC = () => {
   const stageRef = useRef<HTMLDivElement>(null);
   const [isCartOpen, setIsCartOpen] = useState(false);
 
+  const speechRef = useRef<any>(null);
+
   // STT Auto-listen continuation
   const handlePerformanceFinished = useCallback(() => {
-    if (speech.autoListen && !speech.isListening) {
-      speech.startListening();
+    if (speechRef.current?.autoListen && !speechRef.current?.isListening) {
+      speechRef.current?.startListening();
     }
   }, []);
 
@@ -37,6 +39,21 @@ export const App: React.FC = () => {
     resumeAudio: presenter.resumeAudio,
   });
 
+  // Global user-gesture audio unlock for browser autoplay policy
+  React.useEffect(() => {
+    const unlock = () => {
+      void presenter.resumeAudio();
+    };
+    window.addEventListener('pointerdown', unlock, { once: true });
+    window.addEventListener('keydown', unlock, { once: true });
+    window.addEventListener('touchstart', unlock, { once: true });
+    return () => {
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+      window.removeEventListener('touchstart', unlock);
+    };
+  }, [presenter]);
+
   // 3. Speech Recognition Hook
   const handleUserSpeech = useCallback(
     (text: string) => {
@@ -50,25 +67,52 @@ export const App: React.FC = () => {
     onTranscript: handleUserSpeech,
     lang: 'en-SG',
   });
+  speechRef.current = speech;
+
+  const handleToggleMic = useCallback(async () => {
+    if (!presenter.isAudioUnlocked) {
+      await presenter.resumeAudio();
+    }
+    speech.toggleListening();
+  }, [presenter, speech]);
+
+  const personaName = resolvePersonaName(catalog.avatars, catalog.selectedAvatar);
 
   // 4. Concierge Chat & Recommendation Hook
   const chat = useConciergeChat({
     selectedAvatar: catalog.selectedAvatar,
+    personaName,
     isAudioUnlocked: presenter.isAudioUnlocked,
     resumeAudio: presenter.resumeAudio,
     presentSentence: presenter.present,
     stopListening: speech.stopListening,
   });
 
+  const handleLockInAvatar = useCallback(
+    (id: string) => {
+      catalog.handleLockInAvatar(id);
+      const chosenName = resolvePersonaName(catalog.avatars, id);
+      chat.speakWelcome(chosenName);
+    },
+    [catalog, chat]
+  );
+
   // 5. Hand-Gesture Avatar Control (webcam, on-device MediaPipe)
   //    Runs in the background without camera UI preview; swipe to browse, thumbs-up to lock in.
   const gestureVideoRef = useRef<HTMLVideoElement>(null);
-  const { stepPreview, lockInPreviewedAvatar } = catalog;
+  const { stepPreview } = catalog;
   const handleGestureLeft = useCallback(() => stepPreview(-1), [stepPreview]);
   const handleGestureRight = useCallback(() => stepPreview(1), [stepPreview]);
   const handleGestureConfirm = useCallback(
-    () => lockInPreviewedAvatar(),
-    [lockInPreviewedAvatar]
+    () => {
+      const target = catalog.avatars[catalog.previewIndex];
+      if (target) {
+        handleLockInAvatar(target.id);
+      } else {
+        catalog.lockInPreviewedAvatar();
+      }
+    },
+    [catalog, handleLockInAvatar]
   );
 
   const gestures = useHandGestures({
@@ -79,7 +123,6 @@ export const App: React.FC = () => {
     onConfirm: handleGestureConfirm,
   });
 
-  const personaName = resolvePersonaName(catalog.avatars, catalog.selectedAvatar);
   const cartItems = selectedPlanItems(chat.messages);
 
   return (
@@ -105,7 +148,7 @@ export const App: React.FC = () => {
           isLockedIn={catalog.isAvatarLocked}
           previewIndex={catalog.previewIndex}
           onStepPreview={catalog.stepPreview}
-          onLockInAvatar={catalog.handleLockInAvatar}
+          onLockInAvatar={handleLockInAvatar}
           onChangeAvatar={catalog.handleChangeAvatar}
           gesture={gestures}
         />
@@ -116,13 +159,16 @@ export const App: React.FC = () => {
           isListening={speech.isListening}
           autoListen={speech.autoListen}
           onToggleAutoListen={speech.setAutoListen}
-          onToggleMic={speech.toggleListening}
+          onToggleMic={handleToggleMic}
           onSendMessage={chat.handleSendMessage}
           onAddToCart={chat.handleAddToCart}
           onCheckout={chat.handleCheckout}
+          onSpeakMessage={chat.speakMessage}
           personaName={personaName}
           repairNoticeText={chat.repairNoticeText}
           spotlight={chat.foodSpotlight}
+          interimTranscript={speech.interimTranscript}
+          liveTranscript={speech.liveTranscript}
         />
       </main>
 

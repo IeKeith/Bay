@@ -136,15 +136,24 @@ def _extract_user_context(message: str, history: Optional[List[dict]] = None) ->
         "kway chap", "bak kut teh", "pig’s trotters", "biryani", "mee rebus",
         "ice kacang", "tau suan",
     ]
+    wants_drink_or_dessert = bool(re.search(r"\b(drink|drinks|beverage|beverages|juice|sugar cane|sugarcane|coconut|refreshment|refreshing|dessert|desserts|chendol|ice kacang|tau suan)\b", message.lower()))
+
+    user_history_text = " ".join([h.get("content", "") for h in (history or []) if isinstance(h, dict) and h.get("role") == "user"])
     preferences = [term for term in preference_terms if term in message.lower()]
     if not preferences:
-        preferences = [term for term in preference_terms if term in lower]
+        preferences = [term for term in preference_terms if term in user_history_text.lower()]
+    if not wants_drink_or_dessert:
+        preferences = [p for p in preferences if p not in ("sugar cane", "ice kacang", "tau suan")]
 
     is_urgent = any(token in lower for token in ["rush", "urgent", "quick", "tighter", "tight", "immediately", "emergency", "delay"])
 
-    wants_drink_or_dessert = bool(re.search(r"\b(drink|drinks|beverage|beverages|juice|sugar cane|sugarcane|coconut|refreshment|refreshing|dessert|desserts|chendol|ice kacang|tau suan|sweet|cold)\b", message.lower()))
-
-    is_order_request = any(token in message.lower() for token in ["recommend", "suggest", "what should", "want", "what can", "looking for"])
+    is_order_request = any(token in message.lower() for token in [
+        "recommend", "suggest", "what should", "want", "what can", "looking for",
+        "what to eat", "what food", "hungry", "dinner", "lunch", "eat",
+        "how long", "rush", "hurry", "quick", "fast",
+        "family of", "group of", "dining alone", "solo",
+        "any good", "best dish", "popular", "favourite", "favorite",
+    ])
     is_checkout_intent = bool(re.search(
         r"\b(check(?:ed)?\s*out|queue\s+number|my\s+(?:queue|order)|track\s+(?:an?\s+)?order|"
         r"(?:place|submit|confirm|cancel)\s+(?:(?:an?|the|my)\s+)?order|"
@@ -242,20 +251,32 @@ def _is_beverage_or_dessert(dish: dict) -> bool:
     return any(w in low_name for w in ["juice", "coconut", "drink", "chendol", "ice kacang", "tau suan"])
 
 
-def _format_group_portion(dish: dict, group_size: int) -> dict:
+def _format_group_portion(dish: dict, group_size: int, context: Optional[dict] = None) -> dict:
     """Scales portion name, price, and reason when ordering for a group so it makes realistic sense."""
     name = dish.get("name", "Dish")
     price = float(dish.get("price", 0.0))
     stall_name = dish.get("stallName", "a nearby stall")
     stall_id = int(dish.get("stallId", 0))
+    is_urgent = bool(context and context.get("isUrgent"))
+    prep_wait = dish.get("estimatedPrepMins", 8)
 
     if group_size <= 1:
         price_display = dish.get("priceDisplay") or (f"SGD ${int(price)}" if price.is_integer() else f"SGD ${price:.2f}")
+        if is_urgent:
+            if _is_beverage_or_dessert(dish):
+                reason = f"Quickest refreshing beverage (ready in ~{prep_wait} mins total)"
+            else:
+                reason = f"Fastest hot meal option (ready in ~{prep_wait} mins total) to keep you on schedule"
+        else:
+            if _is_beverage_or_dessert(dish):
+                reason = dish.get("reason", "refreshing local beverage to complement your meal")
+            else:
+                reason = dish.get("reason", "quick single-tray comfort meal ideal for solo dining")
         return {
             "dishName": name,
             "price": price_display,
             "portionNote": "1 individual portion",
-            "reason": dish.get("reason", "quick single-tray comfort meal ideal for solo dining"),
+            "reason": reason,
         }
 
     # Satay scaling: 10 sticks is not enough for 4 people; 4 people typically share 25-30 sticks!
@@ -264,21 +285,29 @@ def _format_group_portion(dish: dict, group_size: int) -> dict:
         sticks = sets * 10
         total_price = sets * price
         price_str = f"SGD ${int(total_price)}" if total_price.is_integer() else f"SGD ${total_price:.2f}"
+        if is_urgent:
+            reason = f"A fast-prep charcoal-grilled sharing feast ({sticks} sticks) ready in ~{prep_wait} mins total for your party of {group_size}"
+        else:
+            reason = f"A generous {sticks}-stick charcoal-grilled sharing feast with peanut gravy and ketupat for your party of {group_size}"
         return {
             "dishName": f"Charcoal-Grilled Satay Feast ({sticks} sticks)",
             "price": price_str,
             "portionNote": f"{sticks} sticks ({sets} orders) for your party of {group_size}",
-            "reason": f"A generous {sticks}-stick charcoal-grilled sharing feast with peanut gravy and ketupat for your party of {group_size}",
+            "reason": reason,
         }
 
     # BBQ Seafood / Communal (Stall 2)
     if stall_id == 2 or "stingray" in name.lower():
         if group_size >= 4:
+            if is_urgent:
+                reason = f"A quick-grill communal seafood platter (~{prep_wait} mins total) to share among your group of {group_size}"
+            else:
+                reason = f"A hearty communal seafood platter to share among your group of {group_size}"
             return {
                 "dishName": f"{name} (Medium/Large Sharing Platter)",
                 "price": "SGD $22",
                 "portionNote": f"Medium/Large sharing platter for {group_size} people",
-                "reason": f"A hearty communal seafood platter to share among your group of {group_size}",
+                "reason": reason,
             }
 
     # Individual meals (Chicken Rice, Noodles, Laksa, Prata):
@@ -286,11 +315,15 @@ def _format_group_portion(dish: dict, group_size: int) -> dict:
     total_price = price * group_size
     price_str = f"SGD ${int(total_price)}" if total_price.is_integer() else f"SGD ${total_price:.2f}"
     unit = "bowls" if any(k in name.lower() for k in ["noodle", "mee", "laksa", "soup"]) else ("plates" if any(k in name.lower() for k in ["rice", "prata", "kway teow"]) else "portions")
+    if is_urgent:
+        reason = f"Ordering {group_size} {unit} from {stall_name} is the quickest hot meal option (~{prep_wait} mins total) and keeps your party in a single quick queue"
+    else:
+        reason = f"Ordering {group_size} {unit} from {stall_name} keeps your party together in a single quick queue before the 7:45 PM show"
     return {
         "dishName": f"{name} ({group_size} portions)",
         "price": price_str,
         "portionNote": f"{group_size} individual portions from {stall_name}",
-        "reason": f"Ordering {group_size} {unit} from {stall_name} keeps your party together in a single quick queue before the 7:45 PM show",
+        "reason": reason,
     }
 
 
@@ -319,10 +352,14 @@ def _get_dish_score(
     score += float(dish.get("popularity", 50)) * 0.6
 
     # Meal vs Beverage/Dessert priority:
-    if wants_drink and is_drink:
-        score += 35.0
-    elif not wants_drink and is_drink:
-        score -= 20.0  # Main meals should take precedence when asking for food/dinner
+    if wants_drink:
+        if is_drink:
+            score += 50.0
+        else:
+            score -= 100.0  # User specifically asked for drinks/desserts, deprioritize food meals
+    else:
+        if is_drink:
+            return -1000.0  # Drinks & desserts are NOT food meals; disqualify when user asks for food/dinner/rush
 
     # Group size & portion format fit:
     if group_size >= 3:
@@ -544,7 +581,7 @@ def _recommend_food_from_context(
 
     winner = top_candidates[0]
     group_size = int(context.get("groupSize", 1))
-    winner_portion = _format_group_portion(winner, group_size)
+    winner_portion = _format_group_portion(winner, group_size, context)
 
     return {
         "primary": {
@@ -567,16 +604,16 @@ def _recommend_food_from_context(
         "alternatives": [
             {
                 "dishId": item["id"],
-                "dishName": _format_group_portion(item, group_size)["dishName"],
+                "dishName": _format_group_portion(item, group_size, context)["dishName"],
                 "stallId": int(item["stallId"]),
                 "stallName": item["stallName"],
-                "price": _format_group_portion(item, group_size)["price"],
+                "price": _format_group_portion(item, group_size, context)["price"],
                 "prepTime": f"~{item['estimatedPrepMins']} mins",
                 "prepMinutes": int(item["stallAvailability"].get("prepMinutes", 0)),
                 "queueMinutes": int(item["stallAvailability"].get("queueMinutes", 0)),
                 "estimatedTotalWait": item["estimatedPrepMins"],
-                "reason": _format_group_portion(item, group_size)["reason"],
-                "portionNote": _format_group_portion(item, group_size)["portionNote"],
+                "reason": _format_group_portion(item, group_size, context)["reason"],
+                "portionNote": _format_group_portion(item, group_size, context)["portionNote"],
                 "imageUrl": item.get("imageUrl", "/satay_dish.jpg"),
             }
             for item in top_candidates[1:]

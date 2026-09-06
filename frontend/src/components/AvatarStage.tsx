@@ -26,6 +26,8 @@ export const AvatarStage: React.FC<AvatarStageProps> = ({
   stageRef,
   isReady,
   isSpeaking,
+  isAudioUnlocked,
+  onUnlockAudio,
   personaName,
   subtitle,
   avatars,
@@ -267,6 +269,19 @@ export const AvatarStage: React.FC<AvatarStageProps> = ({
               </svg>
               <span>Switch Avatar</span>
             </button>
+
+            {/* Unmute / Audio Unlock Button */}
+            {!isAudioUnlocked && (
+              <button
+                type="button"
+                onClick={onUnlockAudio}
+                className="btn-unmute-stage"
+                title="Click to enable avatar voice sound"
+              >
+                <span className="unmute-icon">🔇</span>
+                <span>Sound Muted · Click to Unmute</span>
+              </button>
+            )}
 
             {/* Spoken Subtitle Overlay */}
             {subtitle && (
