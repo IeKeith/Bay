@@ -35,6 +35,7 @@ export function usePresenter({
   const speechQueueRef = useRef<string[]>([]);
   const isSpeakingRef = useRef(false);
   const isReadyRef = useRef(false);
+  const speechWatchdogRef = useRef<any>(null);
 
   const processNextSpeech = useCallback(async () => {
     if (!presenterRef.current || !isReadyRef.current || isSpeakingRef.current) {
@@ -49,10 +50,23 @@ export function usePresenter({
     setIsSpeaking(true);
     setSubtitle(nextPhrase);
 
+    if (speechWatchdogRef.current) clearTimeout(speechWatchdogRef.current);
+    speechWatchdogRef.current = setTimeout(() => {
+      if (isSpeakingRef.current) {
+        console.warn('[Presenter] Speech watchdog triggered - releasing speaking lock');
+        isSpeakingRef.current = false;
+        setIsSpeaking(false);
+        if (speechQueueRef.current.length > 0) {
+          void processNextSpeechRef.current();
+        }
+      }
+    }, 12000);
+
     try {
       await presenterRef.current.resumeAudioPlayback?.().catch(() => {});
       await presenterRef.current.present(nextPhrase);
     } catch (err) {
+      if (speechWatchdogRef.current) clearTimeout(speechWatchdogRef.current);
       console.warn('[Presenter] present error:', err);
       isSpeakingRef.current = false;
       setIsSpeaking(false);
@@ -108,6 +122,7 @@ export function usePresenter({
           });
 
           el.addEventListener('ALL_PERFORMANCE_FINISHED', () => {
+            if (speechWatchdogRef.current) clearTimeout(speechWatchdogRef.current);
             isSpeakingRef.current = false;
             setIsSpeaking(false);
             if (speechQueueRef.current.length === 0) {
@@ -180,6 +195,11 @@ export function usePresenter({
 
     try {
       await presenterRef.current.initialize(token, target);
+      isReadyRef.current = true;
+      setIsReady(true);
+      if (speechQueueRef.current.length > 0 && !isSpeakingRef.current) {
+        void processNextSpeechRef.current();
+      }
     } catch (err) {
       console.warn('[Presenter] initialize warning:', err);
       throw err;

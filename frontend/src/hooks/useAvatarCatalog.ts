@@ -136,12 +136,15 @@ export function useAvatarCatalog({
   }, []);
 
   const handleLockInAvatar = useCallback((id: string) => {
-    setSelectedAvatar(id);
     const targetAvatar = avatars.find((a) => a.id === id);
     const matchedVoice = targetAvatar?.voice_id || selectedVoice;
+    const shouldReinit = id !== selectedAvatarRef.current || matchedVoice !== selectedVoiceRef.current;
+    setSelectedAvatar(id);
     setSelectedVoice(matchedVoice);
     setIsAvatarLocked(true);
-    void initAvatarPresenter(id, activeSceneId, matchedVoice);
+    if (shouldReinit) {
+      void initAvatarPresenter(id, activeSceneId, matchedVoice);
+    }
     void resumeAudio();
   }, [avatars, selectedVoice, activeSceneId, initAvatarPresenter, resumeAudio]);
 

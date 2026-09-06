@@ -45,7 +45,9 @@ export function generateDemoReceipt(food: Partial<FoodSuggestionAction>): OrderR
   const prep = typeof food.prepMinutes === 'number' && food.prepMinutes >= 0 ? food.prepMinutes : 8;
   const queue = typeof food.queueMinutes === 'number' && food.queueMinutes >= 0 ? food.queueMinutes : 4;
   const total = prep + queue;
+  // Always anchor to simulated 7:00 PM Singapore kiosk time
   const now = new Date();
+  now.setHours(19, 0, 0, 0);
   const pickup = new Date(now.getTime() + total * 60000);
   const randomQueue = 100 + Math.floor(Math.random() * 890);
   return {

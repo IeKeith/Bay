@@ -39,21 +39,6 @@ export const App: React.FC = () => {
     resumeAudio: presenter.resumeAudio,
   });
 
-  // Global user-gesture audio unlock for browser autoplay policy
-  React.useEffect(() => {
-    const unlock = () => {
-      void presenter.resumeAudio();
-    };
-    window.addEventListener('pointerdown', unlock, { once: true });
-    window.addEventListener('keydown', unlock, { once: true });
-    window.addEventListener('touchstart', unlock, { once: true });
-    return () => {
-      window.removeEventListener('pointerdown', unlock);
-      window.removeEventListener('keydown', unlock);
-      window.removeEventListener('touchstart', unlock);
-    };
-  }, [presenter]);
-
   // 3. Speech Recognition Hook
   const handleUserSpeech = useCallback(
     (text: string) => {
@@ -88,10 +73,40 @@ export const App: React.FC = () => {
     stopListening: speech.stopListening,
   });
 
+  const hasSpokenWelcomeRef = useRef(false);
+
+  // Global user-gesture audio unlock for browser autoplay policy
+  React.useEffect(() => {
+    const unlock = () => {
+      void presenter.resumeAudio();
+      if (!hasSpokenWelcomeRef.current && presenter.isReady) {
+        hasSpokenWelcomeRef.current = true;
+        chat.speakWelcome(personaName);
+      }
+    };
+    window.addEventListener('pointerdown', unlock, { once: true });
+    window.addEventListener('keydown', unlock, { once: true });
+    window.addEventListener('touchstart', unlock, { once: true });
+    return () => {
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+      window.removeEventListener('touchstart', unlock);
+    };
+  }, [presenter, chat, personaName]);
+
+  // Trigger welcome speech automatically as soon as presenter is ready
+  React.useEffect(() => {
+    if (presenter.isReady && !hasSpokenWelcomeRef.current) {
+      hasSpokenWelcomeRef.current = true;
+      chat.speakWelcome(personaName);
+    }
+  }, [presenter.isReady, chat, personaName]);
+
   const handleLockInAvatar = useCallback(
     (id: string) => {
       catalog.handleLockInAvatar(id);
       const chosenName = resolvePersonaName(catalog.avatars, id);
+      hasSpokenWelcomeRef.current = true;
       chat.speakWelcome(chosenName);
     },
     [catalog, chat]

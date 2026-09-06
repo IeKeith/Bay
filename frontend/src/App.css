@@ -1161,6 +1161,113 @@ sv-presenter[hidden] {
 }
 
 /* Avatar Live Status Indicator */
+/* ── Avatar Initializing / Loading Overlay ── */
+.avatar-loading-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at center, rgba(14, 25, 19, 0.9) 0%, rgba(6, 12, 9, 0.96) 100%);
+  backdrop-filter: blur(14px);
+  animation: fadeIn 0.3s ease;
+}
+
+.avatar-loading-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 32px 36px;
+  background: rgba(18, 32, 24, 0.85);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 30px rgba(16, 185, 129, 0.1);
+  max-width: 320px;
+  width: 90%;
+}
+
+.avatar-loading-spinner-wrap {
+  position: relative;
+  width: 86px;
+  height: 86px;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-loading-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid rgba(16, 185, 129, 0.15);
+  border-top-color: #10b981;
+  border-right-color: #f59e0b;
+  animation: avatar-spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+
+.avatar-loading-thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.avatar-loading-placeholder-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #10b981;
+}
+
+.avatar-loading-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #f3f4f6;
+  margin: 0 0 6px 0;
+}
+
+.avatar-loading-subtitle {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  margin: 0;
+}
+
+.avatar-loading-progress-bar {
+  width: 170px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 16px;
+}
+
+.avatar-loading-progress-fill {
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #f59e0b);
+  border-radius: 2px;
+  animation: avatar-progress-slide 1.4s infinite ease-in-out;
+}
+
+@keyframes avatar-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes avatar-progress-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+
 .avatar-live-indicator {
   position: absolute;
   top: 14px;

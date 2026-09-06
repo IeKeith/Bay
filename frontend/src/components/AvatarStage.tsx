@@ -73,6 +73,34 @@ export const AvatarStage: React.FC<AvatarStageProps> = ({
     }
   };
 
+  // Track whether the avatar has started speaking for the initial lock-in
+  const [hasStartedSpeaking, setHasStartedSpeaking] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isLockedIn && isSpeaking) {
+      setHasStartedSpeaking(true);
+    }
+  }, [isLockedIn, isSpeaking]);
+
+  // Safety fallback: if avatar is ready for 5s but isSpeaking hasn't fired, reveal avatar
+  React.useEffect(() => {
+    if (isLockedIn && isReady && !hasStartedSpeaking) {
+      const timer = setTimeout(() => {
+        setHasStartedSpeaking(true);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [isLockedIn, isReady, hasStartedSpeaking]);
+
+  // Reset when unlocking or switching avatar
+  React.useEffect(() => {
+    if (!isLockedIn) {
+      setHasStartedSpeaking(false);
+    }
+  }, [isLockedIn]);
+
+  const showLoading = isLockedIn && (!isReady || !hasStartedSpeaking);
+
   return (
     <section className="col-center">
       <div className="stage-container">
@@ -236,6 +264,49 @@ export const AvatarStage: React.FC<AvatarStageProps> = ({
           </div>
         ) : (
           <>
+            {/* Loading Animation while Avatar 3D & Speech Engine is Initializing or Preparing to Speak */}
+            {showLoading && (
+              <div className="avatar-loading-overlay">
+                <div className="avatar-loading-box">
+                  <div className="avatar-loading-spinner-wrap">
+                    <div className="avatar-loading-ring" />
+                    {currentAvatar?.thumbnail ? (
+                      <img
+                        src={currentAvatar.thumbnail}
+                        alt={personaName}
+                        className="avatar-loading-thumb"
+                      />
+                    ) : (
+                      <div className="avatar-loading-placeholder-icon">
+                        <svg
+                          width="28"
+                          height="28"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                          <circle cx="12" cy="7" r="4" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  <h3 className="avatar-loading-title">
+                    {!isReady ? `Connecting to ${personaName}...` : `Preparing ${personaName}...`}
+                  </h3>
+                  <p className="avatar-loading-subtitle">
+                    {!isReady ? 'Initializing 3D avatar & voice engine' : 'Readying voice speech & lip-sync...'}
+                  </p>
+                  <div className="avatar-loading-progress-bar">
+                    <div className="avatar-loading-progress-fill" />
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Live Speaking Indicator */}
             <div className={`avatar-live-indicator ${isSpeaking ? 'speaking' : ''}`}>
               <span className="indicator-pulse"></span>
