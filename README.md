@@ -2,7 +2,7 @@
 
 ## Project Name
 **Garden-to-Table Host** — Voice-Enabled 3D AI Avatar Concierge for Satay by the Bay (Gardens by the Bay, Singapore)
-
+Link: https://garden-to-table-2026.web.app/
 ## Project Description
 **Garden-to-Table Host** is an intelligent, multimodal kiosk concierge designed to assist visitors dining at **Satay by the Bay** while managing tight turnaround times before the iconic evening **7:45 PM Garden Rhapsody Light Show** at Supertree Grove.
 
