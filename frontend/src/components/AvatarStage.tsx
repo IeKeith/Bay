@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import type { AvatarOption } from '../types/chat';
+import type { UseHandGesturesResult } from '../hooks/useHandGestures';
 
 interface AvatarStageProps {
   stageRef: React.RefObject<HTMLDivElement | null>;
@@ -12,8 +13,30 @@ interface AvatarStageProps {
   avatars: AvatarOption[];
   selectedAvatar: string;
   isLockedIn: boolean;
+  previewIndex: number;
+  onStepPreview: (dir: -1 | 1) => void;
   onLockInAvatar: (id: string) => void;
   onChangeAvatar: () => void;
+  /** Camera preview element driven by the gesture controller. */
+  gestureVideoRef: React.RefObject<HTMLVideoElement | null>;
+  gesture: UseHandGesturesResult;
+}
+
+function gestureHint(g: UseHandGesturesResult): string {
+  switch (g.status) {
+    case 'loading':
+      return 'Starting camera…';
+    case 'ready':
+      return 'Wave ✋ left / right to browse · hold 👍 to lock in';
+    case 'denied':
+      return 'Camera access blocked — use the arrows below.';
+    case 'unsupported':
+      return 'Gesture control needs a camera on a secure (https) page.';
+    case 'error':
+      return 'Camera unavailable — use the arrows below.';
+    default:
+      return '';
+  }
 }
 
 export const AvatarStage: React.FC<AvatarStageProps> = ({
@@ -25,39 +48,32 @@ export const AvatarStage: React.FC<AvatarStageProps> = ({
   avatars,
   selectedAvatar,
   isLockedIn,
+  previewIndex,
+  onStepPreview,
   onLockInAvatar,
   onChangeAvatar,
+  gestureVideoRef,
+  gesture,
 }) => {
-  const [previewIndex, setPreviewIndex] = useState(() => {
-    const idx = avatars.findIndex((a) => a.id === selectedAvatar);
-    return idx >= 0 ? idx : 0;
-  });
-
-  useEffect(() => {
-    const idx = avatars.findIndex((a) => a.id === selectedAvatar);
-    if (idx >= 0) setPreviewIndex(idx);
-  }, [selectedAvatar, avatars]);
-
-  const activeIndex = previewIndex >= 0 && previewIndex < avatars.length ? previewIndex : 0;
+  const activeIndex =
+    previewIndex >= 0 && previewIndex < avatars.length ? previewIndex : 0;
   const currentAvatar = avatars[activeIndex] || null;
-
-  const handlePrev = () => {
-    if (avatars.length === 0) return;
-    const prevIdx = (activeIndex - 1 + avatars.length) % avatars.length;
-    setPreviewIndex(prevIdx);
-  };
-
-  const handleNext = () => {
-    if (avatars.length === 0) return;
-    const nextIdx = (activeIndex + 1) % avatars.length;
-    setPreviewIndex(nextIdx);
-  };
+  const isCurrentActive = currentAvatar?.id === selectedAvatar;
 
   const handleLockIn = () => {
     if (currentAvatar) {
       onLockInAvatar(currentAvatar.id);
     }
   };
+
+  const flashLabel =
+    gesture.lastGesture === 'left'
+      ? '◀ Previous'
+      : gesture.lastGesture === 'right'
+      ? 'Next ▶'
+      : gesture.lastGesture === 'ok'
+      ? '✓ Locking in'
+      : null;
 
   return (
     <section className="col-center">
@@ -88,14 +104,45 @@ export const AvatarStage: React.FC<AvatarStageProps> = ({
 
               <h2 className="center-persona-title">Select Your Concierge Avatar</h2>
               <p className="center-persona-desc">
-                Browse through avatars using the arrows below, then lock in your choice to start your session.
+                Use the arrows, or wave your hand at the camera — swipe left / right
+                to browse and hold a thumbs-up to lock in.
               </p>
+
+              {/* Gesture control HUD */}
+              <div
+                className={`gesture-hud${gesture.inCooldown ? ' is-cooldown' : ''}${
+                  gesture.status === 'denied' ||
+                  gesture.status === 'unsupported' ||
+                  gesture.status === 'error'
+                    ? ' is-unavailable'
+                    : ''
+                }`}
+              >
+                <div className="gesture-cam-wrap">
+                  <video
+                    ref={gestureVideoRef}
+                    className="gesture-cam"
+                    playsInline
+                    muted
+                    autoPlay
+                  />
+                  {flashLabel && <span className="gesture-flash">{flashLabel}</span>}
+                  {gesture.status === 'ready' && !flashLabel && (
+                    <span
+                      className={`gesture-live-dot${
+                        gesture.inCooldown ? ' dim' : ''
+                      }`}
+                    />
+                  )}
+                </div>
+                <span className="gesture-hint-text">{gestureHint(gesture)}</span>
+              </div>
 
               {/* Avatar Carousel */}
               <div className="center-carousel-wrap">
                 <button
                   type="button"
-                  onClick={handlePrev}
+                  onClick={() => onStepPreview(-1)}
                   className="carousel-nav-btn prev-btn center-nav-btn"
                   title="Previous Avatar"
                   aria-label="Previous Avatar"
@@ -154,7 +201,7 @@ export const AvatarStage: React.FC<AvatarStageProps> = ({
 
                 <button
                   type="button"
-                  onClick={handleNext}
+                  onClick={() => onStepPreview(1)}
                   className="carousel-nav-btn next-btn center-nav-btn"
                   title="Next Avatar"
                   aria-label="Next Avatar"

@@ -143,6 +143,33 @@ export function useAvatarCatalog({
     setIsAvatarLocked(false);
   }, []);
 
+  // --- Carousel preview index -------------------------------------------------
+  // Lifted here (previously duplicated as local state in AvatarStage /
+  // PersonaSelector) so the arrow buttons and the gesture controller step the
+  // same pointer.
+  const [previewIndex, setPreviewIndex] = useState(0);
+
+  useEffect(() => {
+    if (avatars.length === 0) return;
+    const idx = avatars.findIndex((a) => a.id === selectedAvatar);
+    setPreviewIndex(idx >= 0 ? idx : 0);
+  }, [selectedAvatar, avatars]);
+
+  const stepPreview = useCallback(
+    (dir: -1 | 1) => {
+      setPreviewIndex((i) => {
+        if (avatars.length === 0) return i;
+        return (i + dir + avatars.length) % avatars.length;
+      });
+    },
+    [avatars.length]
+  );
+
+  const lockInPreviewedAvatar = useCallback(() => {
+    const target = avatars[previewIndex];
+    if (target) handleLockInAvatar(target.id);
+  }, [avatars, previewIndex, handleLockInAvatar]);
+
   return {
     config,
     avatars,
@@ -152,6 +179,9 @@ export function useAvatarCatalog({
     activeSceneId,
     statusText,
     isAvatarLocked,
+    previewIndex,
+    stepPreview,
+    lockInPreviewedAvatar,
     handleLockInAvatar,
     handleChangeAvatar,
     initAvatarPresenter,

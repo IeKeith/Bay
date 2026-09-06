@@ -26,8 +26,10 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+# Anchored to repo root so these Python build dirs don't shadow app source
+# such as frontend/src/lib/
+/lib/
+/lib64/
 parts/
 sdist/
 var/
@@ -55,6 +57,11 @@ htmlcov/
 .pytest_cache/
 coverage/
 *.lcov
+
+# Vendored MediaPipe assets (added at kiosk build time, see
+# frontend/public/mediapipe/README.md)
+frontend/public/mediapipe/wasm/
+frontend/public/mediapipe/*.task
 
 # Node & Frontend (Vite / React / TS)
 node_modules/
